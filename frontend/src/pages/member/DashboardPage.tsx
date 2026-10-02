@@ -67,23 +67,28 @@ export const DashboardPage: React.FC = () => {
     <div className="space-y-8">
       {/* Welcome Banner */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-              Active Member Standing
-            </span>
-            <span className="text-xs text-slate-400">&bull;</span>
-            <span className="text-xs text-slate-500 font-medium">{categoryName} Tier</span>
+        <div className="flex items-start space-x-4">
+          <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-center p-2 shadow-xs shrink-0 mt-0.5">
+            <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
           </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+                Active Member Standing
+              </span>
+              <span className="text-xs text-slate-400">&bull;</span>
+              <span className="text-xs text-slate-500 font-medium">{categoryName} Tier</span>
+            </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Welcome back, {memberName}
-          </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              Welcome back, {memberName}
+            </h1>
 
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
-            Access your verified member pass, view organization communiqués, and manage your profile details.
-          </p>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
+              Access your verified member pass, view organization communiqués, and manage your profile details.
+            </p>
+          </div>
         </div>
 
         {/* Member ID Quick Card */}

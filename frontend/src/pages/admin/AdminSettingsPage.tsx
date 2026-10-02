@@ -661,11 +661,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden p-1 shadow-2xs">
-                      {branding.site_logo_url ? (
-                        <img src={branding.site_logo_url} alt="Site Logo" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <span className="font-bold text-blue-600 text-xl">W</span>
-                      )}
+                      <img src={branding.site_logo_url || '/logo.png'} alt="Site Logo" className="max-w-full max-h-full object-contain" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-900">Site Header Logo</p>
@@ -692,11 +688,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden p-2 shadow-2xs">
-                      {branding.favicon_url ? (
-                        <img src={branding.favicon_url} alt="Favicon" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <div className="w-6 h-6 bg-blue-600 text-white font-bold text-xs flex items-center justify-center rounded">W</div>
-                      )}
+                      <img src={branding.favicon_url || '/favicon.png'} alt="Favicon" className="max-w-full max-h-full object-contain" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-900">Browser Favicon</p>
@@ -722,12 +714,8 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
                 {/* 3. Email Template Logo */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden p-1 shadow-2xs">
-                      {branding.email_logo_url ? (
-                        <img src={branding.email_logo_url} alt="Email Logo" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <span className="font-bold text-white text-xl">W</span>
-                      )}
+                    <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden p-1 shadow-2xs">
+                      <img src={branding.email_logo_url || '/logo.png'} alt="Email Logo" className="max-w-full max-h-full object-contain" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-900">Email Template Logo</p>

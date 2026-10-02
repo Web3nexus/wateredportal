@@ -19,9 +19,11 @@ export const Header: React.FC = () => {
         {/* Brand */}
         <div className="flex items-center space-x-6">
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-800 flex items-center justify-center text-white font-bold text-base shadow-sm ring-1 ring-white/10 group-hover:scale-105 transition-transform">
-              W
-            </div>
+            <img
+              src="/logo.png"
+              alt="Watered"
+              className="w-9 h-9 object-contain group-hover:scale-105 transition-transform"
+            />
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-base font-bold tracking-tight text-slate-900">
