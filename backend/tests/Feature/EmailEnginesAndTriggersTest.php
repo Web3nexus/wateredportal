@@ -287,4 +287,56 @@ class EmailEnginesAndTriggersTest extends TestCase
         $this->assertTrue($transport465->getStream()->isTLS());
         $this->assertFalse($transport465->isAutoTls());
     }
+
+    public function test_application_contact_required_and_rejection_dispatch_emails(): void
+    {
+        $app = MembershipApplication::create([
+            'application_number' => 'APP-TEST-REQINFO',
+            'membership_category_id' => $this->category->id,
+            'status' => 'pending',
+            'first_name' => 'Gregor',
+            'last_name' => 'Samsa',
+            'email' => 'gregor.samsa@example.org',
+            'phone' => '+1555987654',
+            'current_location' => 'Metropolis, Countryland',
+            'occupation' => 'Salesman',
+            'workplace' => 'Prague Textiles',
+        ]);
+
+        // 1. Request Info / Contact Details
+        $reqResponse = $this->actingAs($this->admin)->postJson("/api/admin/applications/{$app->id}/request-info", [
+            'review_notes' => 'Please provide proof of official address and passport scan.',
+        ]);
+
+        $reqResponse->assertStatus(200);
+        $this->assertDatabaseHas('membership_applications', [
+            'id' => $app->id,
+            'status' => 'contact_required',
+            'review_notes' => 'Please provide proof of official address and passport scan.',
+        ]);
+
+        $logReq = EmailLog::where('recipient_email', 'gregor.samsa@example.org')
+            ->where('metadata->type', 'application_contact_required')
+            ->first();
+        $this->assertNotNull($logReq);
+        $this->assertStringContainsString('APP-TEST-REQINFO', $logReq->subject);
+
+        // 2. Reject Application
+        $rejResponse = $this->actingAs($this->admin)->postJson("/api/admin/applications/{$app->id}/reject", [
+            'review_notes' => 'Ineligible according to council bylaws.',
+        ]);
+
+        $rejResponse->assertStatus(200);
+        $this->assertDatabaseHas('membership_applications', [
+            'id' => $app->id,
+            'status' => 'rejected',
+        ]);
+
+        $logRej = EmailLog::where('recipient_email', 'gregor.samsa@example.org')
+            ->where('metadata->type', 'application_rejected')
+            ->first();
+        $this->assertNotNull($logRej);
+        $this->assertStringContainsString('APP-TEST-REQINFO', $logRej->subject);
+    }
 }
+

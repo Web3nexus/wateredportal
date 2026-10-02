@@ -67,13 +67,20 @@ export const AdminMessagesPage: React.FC = () => {
       setMembers(res.members.data);
       if (res.members.data.length > 0) setSelectedMemberId(res.members.data[0].id);
     });
-    adminService.getSendingAccounts({ active_only: true }).then((res) => {
-      setSendingAccounts(res.accounts);
-      const defaultAcc = res.accounts.find((a) => a.is_default) || res.accounts[0];
-      if (defaultAcc) {
-        setSelectedSendingAccountId(defaultAcc.id);
-      }
-    });
+    adminService
+      .getSendingAccounts({ active_only: true })
+      .then((res) => {
+        const list = res.accounts || [];
+        setSendingAccounts(list);
+        const defaultAcc = list.find((a) => a.is_default) || list[0];
+        if (defaultAcc) {
+          setSelectedSendingAccountId(defaultAcc.id);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load sending accounts:', err);
+        setSendingAccounts([]);
+      });
   }, []);
 
   const handlePreviewRecipients = async () => {

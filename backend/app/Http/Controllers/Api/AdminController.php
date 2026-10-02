@@ -437,8 +437,11 @@ class AdminController extends Controller
             'reason' => $validated['review_notes'],
         ], $admin);
 
+        // Dispatch notification email to applicant
+        EmailService::sendApplicationRejectedEmail($application, $validated['review_notes']);
+
         return response()->json([
-            'message' => 'Application rejected and logged.',
+            'message' => 'Application rejected and notification email sent to applicant.',
             'application' => $application,
         ]);
     }
@@ -465,8 +468,11 @@ class AdminController extends Controller
             'notes' => $validated['review_notes'],
         ], $admin);
 
+        // Dispatch contact / information request email to applicant
+        EmailService::sendApplicationContactRequiredEmail($application, $validated['review_notes']);
+
         return response()->json([
-            'message' => 'Application marked for contact / additional information.',
+            'message' => 'Application marked for contact and email sent to applicant.',
             'application' => $application,
         ]);
     }

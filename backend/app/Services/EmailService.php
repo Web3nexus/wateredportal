@@ -378,6 +378,96 @@ HTML;
     }
 
     /**
+     * Trigger 2b: Additional Contact / Info Requested for Application
+     */
+    public static function sendApplicationContactRequiredEmail(MembershipApplication $application, string $notes): void
+    {
+        if (empty($application->email)) {
+            return;
+        }
+
+        $template = EmailTemplate::where('code', 'application_contact_required')->first();
+        $siteName = Setting::get('site_name', 'Watered');
+        $parentUrl = Setting::get('parent_website_url', 'http://mywatered.com/');
+
+        $data = [
+            'first_name' => $application->first_name,
+            'last_name' => $application->last_name,
+            'application_number' => $application->application_number,
+            'notes' => $notes,
+            'site_name' => $siteName,
+            'parent_website_url' => $parentUrl,
+        ];
+
+        if ($template && $template->is_active) {
+            $rendered = $template->render($data);
+            $subject = $rendered['subject'];
+            $body = $rendered['body'];
+        } else {
+            $subject = "Action Required: Contact Details / Information Requested for Application #{$application->application_number}";
+            $body = "Greetings {$application->first_name},\n\nThe membership committee has reviewed your pending membership application (#{$application->application_number}) and requires additional contact details or information to proceed with your enrollment.\n\nAdministrator Request:\n{$notes}\n\nPlease reply directly to this email or reach out to administration with the requested details so your application can be finalized.\n\nWatered Membership Administration\n{$parentUrl}";
+        }
+
+        self::sendGeneralNotification(
+            $application->email,
+            "{$application->first_name} {$application->last_name}",
+            $subject,
+            $body,
+            [
+                'type' => 'application_contact_required',
+                'application_id' => $application->id,
+                'application_number' => $application->application_number,
+            ]
+        );
+    }
+
+    /**
+     * Trigger 2c: Membership Application Rejected
+     */
+    public static function sendApplicationRejectedEmail(MembershipApplication $application, string $reason): void
+    {
+        if (empty($application->email)) {
+            return;
+        }
+
+        $template = EmailTemplate::where('code', 'application_rejected')->first();
+        $siteName = Setting::get('site_name', 'Watered');
+        $parentUrl = Setting::get('parent_website_url', 'http://mywatered.com/');
+
+        $reasonSection = !empty($reason) ? "Reason / Notes Provided:\n{$reason}\n\n" : "";
+
+        $data = [
+            'first_name' => $application->first_name,
+            'last_name' => $application->last_name,
+            'application_number' => $application->application_number,
+            'reason_section' => $reasonSection,
+            'site_name' => $siteName,
+            'parent_website_url' => $parentUrl,
+        ];
+
+        if ($template && $template->is_active) {
+            $rendered = $template->render($data);
+            $subject = $rendered['subject'];
+            $body = $rendered['body'];
+        } else {
+            $subject = "Update Regarding Your Membership Application #{$application->application_number}";
+            $body = "Greetings {$application->first_name},\n\nThank you for your interest in joining the {$siteName} register (#{$application->application_number}).\n\nFollowing a review by the admissions board, we regret to inform you that your application could not be approved at this time.\n\n{$reasonSection}If you have questions or believe this is an error, please contact administration.\n\n{$siteName} Membership Admissions\n{$parentUrl}";
+        }
+
+        self::sendGeneralNotification(
+            $application->email,
+            "{$application->first_name} {$application->last_name}",
+            $subject,
+            $body,
+            [
+                'type' => 'application_rejected',
+                'application_id' => $application->id,
+                'application_number' => $application->application_number,
+            ]
+        );
+    }
+
+    /**
      * Trigger 3: User Login Security Alert
      */
     public static function sendLoginAlertEmail(User $user, Request $request): void
