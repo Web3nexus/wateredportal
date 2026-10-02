@@ -54,19 +54,14 @@ class SendingEmailAccount extends Model
     public function createMailer(): LaravelMailer
     {
         $port = (int) ($this->smtp_port ?: 587);
-        $encryption = strtolower((string) ($this->smtp_encryption ?: 'tls'));
-        $isTls = in_array($encryption, ['tls', 'ssl']);
 
-        $transport = new EsmtpTransport(
+        $transport = \App\Services\EmailService::buildTransport(
             $this->smtp_host ?: '127.0.0.1',
             $port,
-            $isTls
+            $this->smtp_encryption,
+            $this->smtp_username,
+            $this->smtp_password
         );
-
-        if (!empty($this->smtp_username)) {
-            $transport->setUsername($this->smtp_username);
-            $transport->setPassword($this->smtp_password ?? '');
-        }
 
         $mailer = new LaravelMailer(
             'account_' . $this->id . '_' . uniqid(),

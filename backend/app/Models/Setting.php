@@ -23,10 +23,10 @@ class Setting extends Model
     public static function get(string $key, mixed $default = null): mixed
     {
         $setting = static::where('key', $key)->first();
-        if (!$setting) {
+        if (!$setting || $setting->value === null || trim((string) $setting->value) === '') {
             return $default;
         }
-        return $setting->value ?? $default;
+        return $setting->value;
     }
 
     public static function set(string $key, mixed $value, string $group = 'general', bool $isSecret = false): self

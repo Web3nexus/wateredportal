@@ -51,13 +51,13 @@ class SettingsController extends Controller
                 'primary_color' => '#966922',
             ],
             'smtp' => [
-                'smtp_host' => config('mail.mailers.smtp.host', '127.0.0.1'),
-                'smtp_port' => config('mail.mailers.smtp.port', 1025),
-                'smtp_username' => config('mail.mailers.smtp.username', ''),
-                'smtp_password' => '',
-                'smtp_encryption' => config('mail.mailers.smtp.encryption', 'tls'),
-                'smtp_from_address' => config('mail.from.address', 'noreply@mywatered.com'),
-                'smtp_from_name' => config('mail.from.name', 'Watered'),
+                'smtp_host' => env('MAIL_HOST', config('mail.mailers.smtp.host', '127.0.0.1')),
+                'smtp_port' => (int) env('MAIL_PORT', config('mail.mailers.smtp.port', 587)),
+                'smtp_username' => env('MAIL_USERNAME', config('mail.mailers.smtp.username', '')),
+                'smtp_password' => !empty(env('MAIL_PASSWORD')) ? '••••••••' : '',
+                'smtp_encryption' => env('MAIL_ENCRYPTION', config('mail.mailers.smtp.encryption', 'tls')),
+                'smtp_from_address' => env('MAIL_FROM_ADDRESS', config('mail.from.address', 'noreply@mywatered.com')),
+                'smtp_from_name' => env('MAIL_FROM_NAME', config('mail.from.name', 'Watered')),
             ],
             'sms' => [
                 'sms_enabled' => '0',
@@ -76,7 +76,7 @@ class SettingsController extends Controller
 
             if ($setting->is_secret && !empty($setting->value)) {
                 $data[$group][$setting->key] = '••••••••';
-            } else {
+            } elseif (!empty($setting->value)) {
                 $data[$group][$setting->key] = $setting->value;
             }
         }
@@ -186,19 +186,19 @@ class SettingsController extends Controller
 
         $recipientEmail = $validated['recipient_email'];
 
-        // Determine SMTP credentials
-        $host = $validated['smtp_host'] ?? Setting::get('smtp_host', config('mail.mailers.smtp.host'));
-        $port = $validated['smtp_port'] ?? Setting::get('smtp_port', config('mail.mailers.smtp.port'));
-        $username = $validated['smtp_username'] ?? Setting::get('smtp_username', config('mail.mailers.smtp.username'));
+        // Determine SMTP credentials with robust fallback: request -> Setting -> env -> config
+        $host = !empty($validated['smtp_host']) ? $validated['smtp_host'] : Setting::get('smtp_host', env('MAIL_HOST', config('mail.mailers.smtp.host', '127.0.0.1')));
+        $port = !empty($validated['smtp_port']) ? (int) $validated['smtp_port'] : (int) Setting::get('smtp_port', env('MAIL_PORT', config('mail.mailers.smtp.port', 587)));
+        $username = !empty($validated['smtp_username']) ? $validated['smtp_username'] : Setting::get('smtp_username', env('MAIL_USERNAME', config('mail.mailers.smtp.username', '')));
         
         $password = $validated['smtp_password'] ?? null;
         if (empty($password) || $password === '••••••••') {
-            $password = Setting::get('smtp_password', config('mail.mailers.smtp.password'));
+            $password = Setting::get('smtp_password', env('MAIL_PASSWORD', config('mail.mailers.smtp.password', '')));
         }
 
-        $encryption = $validated['smtp_encryption'] ?? Setting::get('smtp_encryption', config('mail.mailers.smtp.encryption'));
-        $fromAddress = $validated['smtp_from_address'] ?? Setting::get('smtp_from_address', config('mail.from.address'));
-        $fromName = $validated['smtp_from_name'] ?? Setting::get('smtp_from_name', Setting::get('site_name', 'Watered'));
+        $encryption = !empty($validated['smtp_encryption']) ? $validated['smtp_encryption'] : Setting::get('smtp_encryption', env('MAIL_ENCRYPTION', config('mail.mailers.smtp.encryption', 'tls')));
+        $fromAddress = !empty($validated['smtp_from_address']) ? $validated['smtp_from_address'] : Setting::get('smtp_from_address', env('MAIL_FROM_ADDRESS', config('mail.from.address', 'noreply@mywatered.com')));
+        $fromName = !empty($validated['smtp_from_name']) ? $validated['smtp_from_name'] : Setting::get('smtp_from_name', env('MAIL_FROM_NAME', Setting::get('site_name', 'Watered')));
 
         // Generate tracking token
         $trackingToken = Str::random(32);
@@ -249,19 +249,18 @@ class SettingsController extends Controller
 HTML;
 
         try {
-            // Configure dynamic mailer
-            config([
-                'mail.mailers.smtp.host' => $host,
-                'mail.mailers.smtp.port' => (int) $port,
-                'mail.mailers.smtp.encryption' => ($encryption === 'none' || empty($encryption)) ? null : $encryption,
-                'mail.mailers.smtp.username' => $username,
-                'mail.mailers.smtp.password' => $password,
-                'mail.from.address' => $fromAddress,
-                'mail.from.name' => $fromName,
-            ]);
+            $transport = \App\Services\EmailService::buildTransport($host, $port, $encryption, $username, $password);
 
-            // Attempt to send
-            Mail::html($htmlBody, function ($message) use ($recipientEmail, $fromAddress, $fromName, $subject) {
+            $mailer = new \Illuminate\Mail\Mailer(
+                'smtp_test_' . uniqid(),
+                app('view'),
+                $transport,
+                app('events')
+            );
+            $mailer->alwaysFrom($fromAddress, $fromName);
+
+            // Attempt to send directly via live socket transport
+            $mailer->html($htmlBody, function ($message) use ($recipientEmail, $fromAddress, $fromName, $subject) {
                 $message->to($recipientEmail)
                     ->from($fromAddress, $fromName)
                     ->subject($subject);
@@ -284,7 +283,7 @@ HTML;
 
             return response()->json([
                 'success' => true,
-                'message' => "Test email successfully dispatched to {$recipientEmail}.",
+                'message' => "Test email successfully delivered to {$recipientEmail} via {$host}:{$port}.",
                 'log_id' => $emailLog->id,
             ]);
         } catch (\Throwable $e) {

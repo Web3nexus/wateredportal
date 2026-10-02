@@ -271,4 +271,20 @@ class EmailEnginesAndTriggersTest extends TestCase
         $this->assertEquals('Watered Notice: Watered Annual Council Conclave', $log->subject);
         $this->assertEquals($this->account->id, $log->metadata['account_id']);
     }
+
+    public function test_setting_falls_back_to_env_when_empty_and_builds_proper_transports(): void
+    {
+        \App\Models\Setting::set('smtp_host', '', 'smtp');
+        $this->assertEquals('fallback.host.com', \App\Models\Setting::get('smtp_host', 'fallback.host.com'));
+
+        // Port 587 STARTTLS
+        $transport587 = \App\Services\EmailService::buildTransport('mail.example.com', 587, 'tls', 'usr', 'pwd');
+        $this->assertFalse($transport587->getStream()->isTLS());
+        $this->assertTrue($transport587->isAutoTls());
+
+        // Port 465 SMTPS (direct SSL)
+        $transport465 = \App\Services\EmailService::buildTransport('mail.example.com', 465, 'ssl', 'usr', 'pwd');
+        $this->assertTrue($transport465->getStream()->isTLS());
+        $this->assertFalse($transport465->isAutoTls());
+    }
 }

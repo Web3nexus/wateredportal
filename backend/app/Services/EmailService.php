@@ -20,25 +20,60 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 class EmailService
 {
     /**
-     * Get or build the general notification mailer (Type 1 Engine)
+     * Build a robust SMTP transport handling both STARTTLS (port 587/25) and SMTPS (port 465)
      */
-    public static function getGeneralMailer(): array
-    {
-        $host = Setting::get('smtp_host', config('mail.mailers.smtp.host', '127.0.0.1'));
-        $port = (int) Setting::get('smtp_port', config('mail.mailers.smtp.port', 587));
-        $encryption = Setting::get('smtp_encryption', config('mail.mailers.smtp.encryption', 'tls'));
-        $username = Setting::get('smtp_username', config('mail.mailers.smtp.username'));
-        $password = Setting::get('smtp_password', config('mail.mailers.smtp.password'));
-        $fromAddress = Setting::get('smtp_from_address', config('mail.from.address', 'noreply@mywatered.com'));
-        $fromName = Setting::get('smtp_from_name', config('mail.from.name', 'Watered'));
+    public static function buildTransport(
+        string $host,
+        int $port = 587,
+        ?string $encryption = 'tls',
+        ?string $username = null,
+        ?string $password = null
+    ): EsmtpTransport {
+        $port = $port > 0 ? $port : 587;
+        $enc = strtolower((string) $encryption);
+        $isDirectSsl = ($port === 465 || $enc === 'ssl' || $enc === 'smtps');
+        $tls = $isDirectSsl ? true : null;
 
-        $isTls = in_array(strtolower((string) $encryption), ['tls', 'ssl']);
-        $transport = new EsmtpTransport($host, $port, $isTls);
+        $transport = new EsmtpTransport($host, $port, $tls);
+
+        if ($isDirectSsl) {
+            $transport->setAutoTls(false);
+        } elseif (in_array($enc, ['tls', 'starttls']) || $port === 587) {
+            $transport->setAutoTls(true);
+        } elseif (in_array($enc, ['none', 'null']) || empty($enc)) {
+            $transport->setAutoTls(false);
+        }
 
         if (!empty($username)) {
             $transport->setUsername($username);
             $transport->setPassword($password ?? '');
         }
+
+        /** @var \Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream $stream */
+        $stream = $transport->getStream();
+        $streamOptions = $stream->getStreamOptions();
+        $streamOptions['ssl']['verify_peer'] = false;
+        $streamOptions['ssl']['verify_peer_name'] = false;
+        $streamOptions['ssl']['allow_self_signed'] = true;
+        $stream->setStreamOptions($streamOptions);
+
+        return $transport;
+    }
+
+    /**
+     * Get or build the general notification mailer (Type 1 Engine)
+     */
+    public static function getGeneralMailer(): array
+    {
+        $host = Setting::get('smtp_host') ?: (config('mail.mailers.smtp.host') ?: env('MAIL_HOST', '127.0.0.1'));
+        $port = (int) (Setting::get('smtp_port') ?: (config('mail.mailers.smtp.port') ?: env('MAIL_PORT', 587)));
+        $encryption = Setting::get('smtp_encryption') ?: (config('mail.mailers.smtp.encryption') ?: env('MAIL_ENCRYPTION', 'tls'));
+        $username = Setting::get('smtp_username') ?: (config('mail.mailers.smtp.username') ?: env('MAIL_USERNAME', ''));
+        $password = Setting::get('smtp_password') ?: (config('mail.mailers.smtp.password') ?: env('MAIL_PASSWORD', ''));
+        $fromAddress = Setting::get('smtp_from_address') ?: (config('mail.from.address') ?: env('MAIL_FROM_ADDRESS', 'noreply@mywatered.com'));
+        $fromName = Setting::get('smtp_from_name') ?: (config('mail.from.name') ?: env('MAIL_FROM_NAME', 'Watered'));
+
+        $transport = self::buildTransport($host, $port, $encryption, $username, $password);
 
         $mailer = new LaravelMailer(
             'general_smtp_' . uniqid(),
