@@ -16,6 +16,9 @@ import {
   Plus,
   Edit,
   Trash2,
+  CheckSquare,
+  Square,
+  Users,
 } from 'lucide-react';
 
 export const AdminApplicationsPage: React.FC = () => {
@@ -25,6 +28,12 @@ export const AdminApplicationsPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Multi-Selection State
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // Review Modal State
   const [selectedApp, setSelectedApp] = useState<MembershipApplication | null>(null);
@@ -68,12 +77,13 @@ export const AdminApplicationsPage: React.FC = () => {
   const [editError, setEditError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Delete Confirmation State
+  // Single Delete Confirmation State
   const [deletingApp, setDeletingApp] = useState<MembershipApplication | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = () => {
     setIsLoading(true);
+    setSelectedIds([]);
     adminService
       .getApplications({
         status: statusFilter || undefined,
@@ -101,6 +111,50 @@ export const AdminApplicationsPage: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loadData();
+  };
+
+  // Multi-Selection handlers
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === applications.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(applications.map((a) => a.id));
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkApproving(true);
+    try {
+      await adminService.bulkApproveApplications(selectedIds, 'Bulk approved by administration.');
+      setSelectedIds([]);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to bulk approve applications.');
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await adminService.bulkDeleteApplications(selectedIds);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to bulk delete applications.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -272,6 +326,8 @@ export const AdminApplicationsPage: React.FC = () => {
     }
   };
 
+  const isAllSelected = applications.length > 0 && selectedIds.length === applications.length;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -284,10 +340,10 @@ export const AdminApplicationsPage: React.FC = () => {
             Membership Applications
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Review, verify, approve, edit, and manage all Watered membership applications
+            Review, verify, approve, edit, delete, and bulk manage all Watered membership applications
           </p>
         </div>
-        <div>
+        <div className="flex items-center space-x-2">
           <Button
             variant="primary"
             size="sm"
@@ -355,6 +411,45 @@ export const AdminApplicationsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Multi-Selection Bulk Action Banner */}
+      {selectedIds.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs animate-in fade-in">
+          <div className="flex items-center space-x-2 text-xs font-semibold text-blue-900">
+            <CheckSquare className="w-4 h-4 text-blue-600" />
+            <span>
+              {selectedIds.length} {selectedIds.length === 1 ? 'application' : 'applications'} selected
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+            >
+              Deselect All
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleBulkApprove}
+              isLoading={isBulkApproving}
+            >
+              <CheckCircle className="w-3.5 h-3.5 mr-1" />
+              Bulk Approve & Issue IDs ({selectedIds.length})
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Applications Table */}
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center space-y-3">
@@ -368,8 +463,8 @@ export const AdminApplicationsPage: React.FC = () => {
           <FileCheck2 className="w-8 h-8 text-slate-400 mx-auto" />
           <p className="text-sm font-semibold text-slate-900">No applications match criteria</p>
           <p className="text-xs text-slate-500">
-            {statusFilter === '' 
-              ? 'All active candidate submissions have been processed and moved to Member Directory.' 
+            {statusFilter === ''
+              ? 'All active candidate submissions have been processed and moved to Member Directory.'
               : 'Try changing your search or filter options.'}
           </p>
         </div>
@@ -378,6 +473,15 @@ export const AdminApplicationsPage: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] uppercase font-semibold text-slate-500 tracking-wider">
               <tr>
+                <th className="py-3.5 px-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    title="Select all applications on this page"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                  />
+                </th>
                 <th className="py-3.5 px-4">Application ID</th>
                 <th className="py-3.5 px-4">Applicant</th>
                 <th className="py-3.5 px-4">Category</th>
@@ -388,78 +492,94 @@ export const AdminApplicationsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {applications.map((app) => (
-                <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-medium text-blue-600">
-                    {app.application_number}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-semibold text-slate-900 block text-sm">
-                      {app.first_name} {app.last_name}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono">{app.email}</span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="inline-block text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
-                      {app.category?.name}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="text-slate-900 block font-medium">{app.occupation || '—'}</span>
-                    <span className="text-[11px] text-slate-500">{app.current_location || '—'}</span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge
-                      variant={
-                        app.status === 'approved'
-                          ? 'success'
-                          : app.status === 'rejected'
-                          ? 'danger'
-                          : 'warning'
-                      }
-                    >
-                      {app.status.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
-                    {new Date(app.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end space-x-1.5">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setReviewNotes(app.review_notes || '');
-                          setActionError(null);
-                          setActionSuccess(null);
-                        }}
-                        title="Review / Approve"
+              {applications.map((app) => {
+                const isSelected = selectedIds.includes(app.id);
+                return (
+                  <tr
+                    key={app.id}
+                    className={`transition-colors ${
+                      isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50/60'
+                    }`}
+                  >
+                    <td className="py-3.5 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(app.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                      />
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-medium text-blue-600">
+                      {app.application_number}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-semibold text-slate-900 block text-sm">
+                        {app.first_name} {app.last_name}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono">{app.email}</span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="inline-block text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+                        {app.category?.name}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-slate-900 block font-medium">{app.occupation || '—'}</span>
+                      <span className="text-[11px] text-slate-500">{app.current_location || '—'}</span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge
+                        variant={
+                          app.status === 'approved'
+                            ? 'success'
+                            : app.status === 'rejected'
+                            ? 'danger'
+                            : 'warning'
+                        }
                       >
-                        <Eye className="w-3.5 h-3.5 text-blue-600 mr-1" />
-                        <span>Review</span>
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(app)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
-                        title="Edit application"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingApp(app)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Delete application"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {app.status.toUpperCase()}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
+                      {new Date(app.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedApp(app);
+                            setReviewNotes(app.review_notes || '');
+                            setActionError(null);
+                            setActionSuccess(null);
+                          }}
+                          title="Review / Approve"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-blue-600 mr-1" />
+                          <span>Review</span>
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(app)}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                          title="Edit application"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingApp(app)}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Delete application"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -927,7 +1047,7 @@ export const AdminApplicationsPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Single Delete Confirmation Modal */}
       <Modal
         isOpen={!!deletingApp}
         onClose={() => setDeletingApp(null)}
@@ -952,6 +1072,33 @@ export const AdminApplicationsPage: React.FC = () => {
             <Button variant="danger" size="sm" onClick={handleDelete} isLoading={isDeleting}>
               <Trash2 className="w-3.5 h-3.5 mr-1" />
               Delete Permanently
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Bulk Delete Applications"
+        description={`Permanently remove ${selectedIds.length} application records`}
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs sm:text-sm text-slate-600">
+            Are you sure you want to permanently delete{' '}
+            <strong className="text-rose-600 font-bold">{selectedIds.length}</strong> selected applications?
+            This will remove all associated submissions and cannot be undone.
+          </p>
+
+          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleBulkDelete} isLoading={isBulkDeleting}>
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Delete {selectedIds.length} Applications
             </Button>
           </div>
         </div>

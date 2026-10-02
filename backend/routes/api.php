@@ -59,9 +59,11 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', EnsureAdmin::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
-    // Membership Applications (Full CRUD)
+    // Membership Applications (Full CRUD & Bulk Operations)
     Route::get('/applications', [AdminController::class, 'applications']);
     Route::post('/applications', [AdminController::class, 'storeApplication']);
+    Route::post('/applications/bulk-delete', [AdminController::class, 'bulkDeleteApplications']);
+    Route::post('/applications/bulk-approve', [AdminController::class, 'bulkApproveApplications']);
     Route::get('/applications/{id}', [AdminController::class, 'showApplication']);
     Route::patch('/applications/{id}', [AdminController::class, 'updateApplication']);
     Route::delete('/applications/{id}', [AdminController::class, 'destroyApplication']);
@@ -69,9 +71,11 @@ Route::middleware(['auth:sanctum', EnsureAdmin::class])->prefix('admin')->group(
     Route::post('/applications/{id}/reject', [AdminController::class, 'rejectApplication']);
     Route::post('/applications/{id}/request-info', [AdminController::class, 'requestInfoApplication']);
 
-    // Members Registry (Full CRUD)
+    // Members Registry (Full CRUD & Bulk Operations)
     Route::get('/members', [AdminController::class, 'members']);
     Route::post('/members', [AdminController::class, 'storeMember']);
+    Route::post('/members/bulk-delete', [AdminController::class, 'bulkDeleteMembers']);
+    Route::post('/members/bulk-status', [AdminController::class, 'bulkUpdateMemberStatus']);
     Route::get('/members/{id}', [AdminController::class, 'showMember']);
     Route::patch('/members/{id}', [AdminController::class, 'updateMember']);
     Route::delete('/members/{id}', [AdminController::class, 'destroyMember']);

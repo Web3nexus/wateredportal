@@ -195,6 +195,115 @@ class AdminController extends Controller
         ]);
     }
 
+    public function bulkDeleteApplications(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:membership_applications,id'],
+        ]);
+
+        $count = MembershipApplication::whereIn('id', $validated['ids'])->delete();
+
+        AuditLog::record('applications_bulk_deleted', null, [
+            'count' => $count,
+            'application_ids' => $validated['ids'],
+        ], $request->user());
+
+        return response()->json([
+            'message' => "Successfully deleted {$count} applications.",
+            'count' => $count,
+        ]);
+    }
+
+    public function bulkApproveApplications(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:membership_applications,id'],
+            'review_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $admin = $request->user();
+        $applications = MembershipApplication::with('category')
+            ->whereIn('id', $validated['ids'])
+            ->whereNotIn('status', ['approved', 'completed'])
+            ->get();
+
+        $approvedCount = 0;
+        foreach ($applications as $app) {
+            DB::beginTransaction();
+            try {
+                $user = User::where('email', $app->email)->first();
+                $defaultPassword = 'Welcome@Watered' . date('Y');
+
+                if (!$user) {
+                    $user = User::create([
+                        'name' => "{$app->first_name} {$app->last_name}",
+                        'email' => $app->email,
+                        'password' => Hash::make($defaultPassword),
+                        'role' => 'member',
+                        'status' => 'active',
+                    ]);
+                } else {
+                    $user->update(['role' => 'member', 'status' => 'active']);
+                }
+
+                $lastMember = Member::orderBy('id', 'desc')->first();
+                $nextSequence = $lastMember ? ($lastMember->id + 100) : 100;
+                $memberNumber = 'W-' . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
+
+                $member = Member::create([
+                    'user_id' => $user->id,
+                    'membership_category_id' => $app->membership_category_id,
+                    'member_number' => $memberNumber,
+                    'secure_qr_id' => 'sec_w_' . Str::random(32),
+                    'status' => 'active',
+                    'joined_at' => now(),
+                    'valid_until' => now()->addYears(2),
+                ]);
+
+                MemberProfile::create([
+                    'member_id' => $member->id,
+                    'first_name' => $app->first_name,
+                    'last_name' => $app->last_name,
+                    'date_of_birth' => $app->date_of_birth,
+                    'place_of_birth' => $app->place_of_birth,
+                    'current_location' => $app->current_location,
+                    'phone' => $app->phone,
+                    'occupation' => $app->occupation,
+                    'workplace' => $app->workplace,
+                    'photograph_path' => $app->photograph_path,
+                    'bio' => $app->personal_statement,
+                ]);
+
+                $app->update([
+                    'status' => 'approved',
+                    'reviewer_id' => $admin->id,
+                    'reviewed_at' => now(),
+                    'review_notes' => $validated['review_notes'] ?? 'Bulk approved by administration.',
+                ]);
+
+                AuditLog::record('application_approved', $app, [
+                    'member_number' => $memberNumber,
+                    'application_number' => $app->application_number,
+                ], $admin);
+
+                DB::commit();
+
+                // Send admission email
+                EmailService::sendApplicationApprovedEmail($app, $member, $user, $defaultPassword);
+                $approvedCount++;
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+        }
+
+        return response()->json([
+            'message' => "Successfully approved and moved {$approvedCount} applications to Member Directory.",
+            'approved_count' => $approvedCount,
+        ]);
+    }
+
     public function approveApplication(Request $request, int $id): JsonResponse
     {
         $application = MembershipApplication::findOrFail($id);
@@ -691,6 +800,80 @@ class AdminController extends Controller
         }
     }
 
+    public function bulkDeleteMembers(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:members,id'],
+        ]);
+
+        $members = Member::with('user')->whereIn('id', $validated['ids'])->get();
+        $deletedCount = 0;
+
+        foreach ($members as $member) {
+            DB::beginTransaction();
+            try {
+                $user = $member->user;
+                $member->delete();
+
+                if ($user && $user->role === 'member') {
+                    $user->tokens()->delete();
+                    $user->delete();
+                }
+
+                $deletedCount++;
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+        }
+
+        AuditLog::record('members_bulk_deleted', null, [
+            'count' => $deletedCount,
+            'member_ids' => $validated['ids'],
+        ], $request->user());
+
+        return response()->json([
+            'message' => "Successfully deleted {$deletedCount} members from the directory.",
+            'count' => $deletedCount,
+        ]);
+    }
+
+    public function bulkUpdateMemberStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:members,id'],
+            'status' => ['required', 'in:active,suspended,deactivated,pending'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $members = Member::with('user')->whereIn('id', $validated['ids'])->get();
+        $updatedCount = 0;
+
+        foreach ($members as $member) {
+            $member->update(['status' => $validated['status']]);
+            if ($member->user) {
+                $member->user->update([
+                    'status' => in_array($validated['status'], ['active', 'pending']) ? 'active' : 'suspended',
+                ]);
+            }
+            $updatedCount++;
+        }
+
+        AuditLog::record('members_bulk_status_updated', null, [
+            'count' => $updatedCount,
+            'status' => $validated['status'],
+            'reason' => $validated['reason'] ?? null,
+            'member_ids' => $validated['ids'],
+        ], $request->user());
+
+        return response()->json([
+            'message' => "Successfully updated status of {$updatedCount} members to {$validated['status']}.",
+            'count' => $updatedCount,
+        ]);
+    }
+
     public function categories(): JsonResponse
     {
         $categories = MembershipCategory::withCount('members')
@@ -759,9 +942,11 @@ class AdminController extends Controller
     public function recipientPreview(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'target_type' => ['required', 'in:all,category,individual'],
+            'target_type' => ['required', 'in:all,category,individual,multiple'],
             'membership_category_id' => ['nullable', 'required_if:target_type,category', 'exists:membership_categories,id'],
             'target_member_id' => ['nullable', 'required_if:target_type,individual', 'exists:members,id'],
+            'target_member_ids' => ['nullable', 'array'],
+            'target_member_ids.*' => ['integer', 'exists:members,id'],
         ]);
 
         $query = Member::where('status', 'active');
@@ -770,10 +955,12 @@ class AdminController extends Controller
             $query->where('membership_category_id', $validated['membership_category_id']);
         } elseif ($validated['target_type'] === 'individual') {
             $query->where('id', $validated['target_member_id']);
+        } elseif ($validated['target_type'] === 'multiple' && !empty($validated['target_member_ids'])) {
+            $query->whereIn('id', $validated['target_member_ids']);
         }
 
         $count = $query->count();
-        $sample = $query->with('profile:member_id,first_name,last_name')->take(5)->get();
+        $sample = $query->with('profile:member_id,first_name,last_name')->take(10)->get();
 
         return response()->json([
             'count' => $count,
@@ -791,9 +978,11 @@ class AdminController extends Controller
         $validated = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:10000'],
-            'target_type' => ['required', 'in:all,category,individual'],
+            'target_type' => ['required', 'in:all,category,individual,multiple'],
             'membership_category_id' => ['nullable', 'required_if:target_type,category', 'exists:membership_categories,id'],
             'target_member_id' => ['nullable', 'required_if:target_type,individual', 'exists:members,id'],
+            'target_member_ids' => ['nullable', 'array'],
+            'target_member_ids.*' => ['integer', 'exists:members,id'],
             'priority' => ['nullable', 'in:normal,high,urgent'],
             'sending_account_id' => ['nullable', 'exists:sending_email_accounts,id'],
             'send_email' => ['nullable', 'boolean'],
@@ -815,6 +1004,8 @@ class AdminController extends Controller
             $query->where('membership_category_id', $validated['membership_category_id']);
         } elseif ($validated['target_type'] === 'individual') {
             $query->where('id', $validated['target_member_id']);
+        } elseif ($validated['target_type'] === 'multiple' && !empty($validated['target_member_ids'])) {
+            $query->whereIn('id', $validated['target_member_ids']);
         }
 
         $members = $query->with(['user:id,name,email', 'profile'])->get();

@@ -14,6 +14,9 @@ import {
   Filter,
   Plus,
   Trash2,
+  CheckSquare,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 
 export const AdminMembersPage: React.FC = () => {
@@ -23,6 +26,12 @@ export const AdminMembersPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Multi-Selection State
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // Manage / Edit Modal State
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -63,12 +72,13 @@ export const AdminMembersPage: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Delete Confirmation State
+  // Single Delete Confirmation State
   const [deletingMember, setDeletingMember] = useState<Member | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = () => {
     setIsLoading(true);
+    setSelectedIds([]);
     adminService
       .getMembers({
         category_id: selectedCategory,
@@ -100,12 +110,55 @@ export const AdminMembersPage: React.FC = () => {
     loadData();
   };
 
+  // Multi-Selection Handlers
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === members.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(members.map((m) => m.id));
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkStatusChange = async (status: 'active' | 'suspended') => {
+    if (selectedIds.length === 0) return;
+    setIsBulkUpdatingStatus(true);
+    try {
+      await adminService.bulkUpdateMemberStatus(selectedIds, status, 'Bulk status change by administrator.');
+      setSelectedIds([]);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update members status.');
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await adminService.bulkDeleteMembers(selectedIds);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to bulk delete members.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleOpenManageModal = (member: Member) => {
     setSelectedMember(member);
     setActionSuccess(null);
     setActionError(null);
 
-    // Split name or use profile names
     const parts = (member.user?.name || member.profile?.full_name || '').split(' ');
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
@@ -222,6 +275,8 @@ export const AdminMembersPage: React.FC = () => {
     }
   };
 
+  const isAllSelected = members.length > 0 && selectedIds.length === members.length;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -303,6 +358,54 @@ export const AdminMembersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Multi-Selection Bulk Action Banner */}
+      {selectedIds.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs animate-in fade-in">
+          <div className="flex items-center space-x-2 text-xs font-semibold text-blue-900">
+            <CheckSquare className="w-4 h-4 text-blue-600" />
+            <span>
+              {selectedIds.length} {selectedIds.length === 1 ? 'member' : 'members'} selected
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+            >
+              Deselect All
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleBulkStatusChange('active')}
+              isLoading={isBulkUpdatingStatus}
+            >
+              <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+              Activate ({selectedIds.length})
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleBulkStatusChange('suspended')}
+              isLoading={isBulkUpdatingStatus}
+            >
+              <UserX className="w-3.5 h-3.5 mr-1 text-amber-600" />
+              Suspend ({selectedIds.length})
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Members Table */}
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center space-y-3">
@@ -322,6 +425,15 @@ export const AdminMembersPage: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] uppercase font-semibold text-slate-500 tracking-wider">
               <tr>
+                <th className="py-3.5 px-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    title="Select all members on this page"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                  />
+                </th>
                 <th className="py-3.5 px-4">Member</th>
                 <th className="py-3.5 px-4">Category Tier</th>
                 <th className="py-3.5 px-4">Member Number</th>
@@ -331,89 +443,105 @@ export const AdminMembersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {members.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-semibold overflow-hidden shrink-0">
-                        {member.profile?.photograph_url ? (
-                          <img src={member.profile.photograph_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          member.user?.name?.slice(0, 2).toUpperCase() || 'M'
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-slate-900 text-sm">
-                          {member.user?.name || member.profile?.full_name || 'Member'}
+              {members.map((member) => {
+                const isSelected = selectedIds.includes(member.id);
+                return (
+                  <tr
+                    key={member.id}
+                    className={`transition-colors ${
+                      isSelected ? 'bg-blue-50/50' : 'hover:bg-slate-50/60'
+                    }`}
+                  >
+                    <td className="py-3.5 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(member.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                      />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-semibold overflow-hidden shrink-0">
+                          {member.profile?.photograph_url ? (
+                            <img src={member.profile.photograph_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            member.user?.name?.slice(0, 2).toUpperCase() || 'M'
+                          )}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
-                          {member.user?.email}
+                        <div>
+                          <div className="font-semibold text-slate-900 text-sm">
+                            {member.user?.name || member.profile?.full_name || 'Member'}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {member.user?.email}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-md"
-                      style={{
-                        backgroundColor: `${member.category?.badge_color || '#3b82f6'}15`,
-                        color: member.category?.badge_color || '#3b82f6',
-                        border: `1px solid ${member.category?.badge_color || '#3b82f6'}30`,
-                      }}
-                    >
-                      {member.category?.name}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono font-medium text-slate-700">
-                    {member.member_number}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge
-                      variant={
-                        member.status === 'active'
-                          ? 'success'
-                          : member.status === 'suspended'
-                          ? 'danger'
-                          : 'neutral'
-                      }
-                    >
-                      {member.status.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
-                    {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end space-x-1.5">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleOpenManageModal(member)}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-md"
+                        style={{
+                          backgroundColor: `${member.category?.badge_color || '#3b82f6'}15`,
+                          color: member.category?.badge_color || '#3b82f6',
+                          border: `1px solid ${member.category?.badge_color || '#3b82f6'}30`,
+                        }}
                       >
-                        <Edit className="w-3.5 h-3.5 text-blue-600 mr-1" />
-                        <span>Manage</span>
-                      </Button>
-                      <a
-                        href={`/verify/${member.secure_qr_id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-xs transition-colors"
-                        title="View public verification record"
+                        {member.category?.name}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-medium text-slate-700">
+                      {member.member_number}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge
+                        variant={
+                          member.status === 'active'
+                            ? 'success'
+                            : member.status === 'suspended'
+                            ? 'danger'
+                            : 'neutral'
+                        }
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingMember(member)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        title="Delete member"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {member.status.toUpperCase()}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
+                      {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleOpenManageModal(member)}
+                        >
+                          <Edit className="w-3.5 h-3.5 text-blue-600 mr-1" />
+                          <span>Manage</span>
+                        </Button>
+                        <a
+                          href={`/verify/${member.secure_qr_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-xs transition-colors"
+                          title="View public verification record"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingMember(member)}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Delete member"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -791,7 +919,7 @@ export const AdminMembersPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Delete Member Confirmation Modal */}
+      {/* Single Delete Member Confirmation Modal */}
       <Modal
         isOpen={!!deletingMember}
         onClose={() => setDeletingMember(null)}
@@ -819,6 +947,35 @@ export const AdminMembersPage: React.FC = () => {
             <Button variant="danger" size="sm" onClick={handleDelete} isLoading={isDeleting}>
               <Trash2 className="w-3.5 h-3.5 mr-1" />
               Delete Permanently
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Members Confirmation Modal */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Bulk Delete Members"
+        description={`Permanently remove ${selectedIds.length} members from the directory`}
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs sm:text-sm text-slate-600">
+            Are you sure you want to permanently delete{' '}
+            <strong className="text-rose-600 font-bold">{selectedIds.length}</strong> selected members?
+          </p>
+          <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-xl">
+            This will permanently remove their member records, profiles, verification cards, and login accounts. This action cannot be undone.
+          </p>
+
+          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleBulkDelete} isLoading={isBulkDeleting}>
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Delete {selectedIds.length} Members
             </Button>
           </div>
         </div>

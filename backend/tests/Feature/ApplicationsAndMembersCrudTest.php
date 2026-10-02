@@ -185,4 +185,113 @@ class ApplicationsAndMembersCrudTest extends TestCase
         $this->assertDatabaseMissing('members', ['id' => $memberId]);
         $this->assertDatabaseMissing('users', ['email' => 'tariq.updated@example.com']);
     }
+
+    public function test_admin_can_bulk_approve_and_bulk_delete_applications(): void
+    {
+        $category = MembershipCategory::first();
+
+        // Create 3 applications
+        $app1 = MembershipApplication::create([
+            'application_number' => 'APP-BULK1',
+            'membership_category_id' => $category->id,
+            'first_name' => 'User',
+            'last_name' => 'One',
+            'email' => 'bulk1@example.com',
+            'phone' => '+1111111111',
+            'current_location' => 'Lagos',
+            'occupation' => 'Engineer',
+            'workplace' => 'WaterTech',
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $app2 = MembershipApplication::create([
+            'application_number' => 'APP-BULK2',
+            'membership_category_id' => $category->id,
+            'first_name' => 'User',
+            'last_name' => 'Two',
+            'email' => 'bulk2@example.com',
+            'phone' => '+2222222222',
+            'current_location' => 'Abuja',
+            'occupation' => 'Scientist',
+            'workplace' => 'Hydrology Lab',
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $app3 = MembershipApplication::create([
+            'application_number' => 'APP-BULK3',
+            'membership_category_id' => $category->id,
+            'first_name' => 'User',
+            'last_name' => 'Three',
+            'email' => 'bulk3@example.com',
+            'phone' => '+3333333333',
+            'current_location' => 'Accra',
+            'occupation' => 'Agronomist',
+            'workplace' => 'Green Valley',
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        // Bulk Approve app1 and app2
+        $bulkApproveRes = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
+            ->postJson('/api/admin/applications/bulk-approve', [
+                'ids' => [$app1->id, $app2->id],
+                'review_notes' => 'Bulk verified.',
+            ]);
+        $bulkApproveRes->assertStatus(200)
+            ->assertJsonPath('approved_count', 2);
+
+        $this->assertEquals('approved', $app1->fresh()->status);
+        $this->assertEquals('approved', $app2->fresh()->status);
+        $this->assertEquals('pending', $app3->fresh()->status);
+
+        // Bulk Delete app3
+        $bulkDeleteRes = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
+            ->postJson('/api/admin/applications/bulk-delete', [
+                'ids' => [$app3->id],
+            ]);
+        $bulkDeleteRes->assertStatus(200)
+            ->assertJsonPath('count', 1);
+
+        $this->assertDatabaseMissing('membership_applications', ['id' => $app3->id]);
+    }
+
+    public function test_admin_can_bulk_manage_members_and_send_messages_to_multiple_recipients(): void
+    {
+        $members = Member::where('status', 'active')->take(2)->get();
+        $this->assertGreaterThanOrEqual(2, $members->count());
+        $ids = $members->pluck('id')->all();
+
+        // 1. Bulk suspend
+        $bulkStatusRes = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
+            ->postJson('/api/admin/members/bulk-status', [
+                'ids' => $ids,
+                'status' => 'suspended',
+            ]);
+        $bulkStatusRes->assertStatus(200);
+
+        foreach ($ids as $id) {
+            $this->assertEquals('suspended', Member::find($id)->status);
+        }
+
+        // 2. Bulk activate
+        $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
+            ->postJson('/api/admin/members/bulk-status', [
+                'ids' => $ids,
+                'status' => 'active',
+            ])->assertStatus(200);
+
+        // 3. Message multiple selected members
+        $messageRes = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
+            ->postJson('/api/admin/messages', [
+                'subject' => 'Notice for Multiple Selected Members',
+                'body' => 'This is a dedicated notice.',
+                'target_type' => 'multiple',
+                'target_member_ids' => $ids,
+            ]);
+
+        $messageRes->assertStatus(201)
+            ->assertJsonPath('recipient_count', 2);
+    }
 }

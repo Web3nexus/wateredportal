@@ -29,9 +29,11 @@ export const AdminMessagesPage: React.FC = () => {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal');
-  const [targetType, setTargetType] = useState<'all' | 'category' | 'individual'>('all');
+  const [targetType, setTargetType] = useState<'all' | 'category' | 'individual' | 'multiple'>('all');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(undefined);
   const [selectedMemberId, setSelectedMemberId] = useState<number | undefined>(undefined);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
 
   // Preview State
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -81,6 +83,7 @@ export const AdminMessagesPage: React.FC = () => {
         target_type: targetType,
         membership_category_id: targetType === 'category' ? selectedCategoryId : undefined,
         target_member_id: targetType === 'individual' ? selectedMemberId : undefined,
+        target_member_ids: targetType === 'multiple' ? selectedMemberIds : undefined,
       });
       setPreviewCount(res.count);
       setSampleRecipients(res.sample_recipients);
@@ -93,12 +96,17 @@ export const AdminMessagesPage: React.FC = () => {
 
   useEffect(() => {
     handlePreviewRecipients();
-  }, [targetType, selectedCategoryId, selectedMemberId]);
+  }, [targetType, selectedCategoryId, selectedMemberId, selectedMemberIds]);
 
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !body.trim()) {
       setSendError('Message subject and content body are required.');
+      return;
+    }
+
+    if (targetType === 'multiple' && selectedMemberIds.length === 0) {
+      setSendError('Please select at least one member to receive this message.');
       return;
     }
 
@@ -114,6 +122,7 @@ export const AdminMessagesPage: React.FC = () => {
         target_type: targetType,
         membership_category_id: targetType === 'category' ? selectedCategoryId : undefined,
         target_member_id: targetType === 'individual' ? selectedMemberId : undefined,
+        target_member_ids: targetType === 'multiple' ? selectedMemberIds : undefined,
         sending_account_id: selectedSendingAccountId,
         send_email: sendOutboundEmail,
       });
@@ -121,6 +130,7 @@ export const AdminMessagesPage: React.FC = () => {
       setSendSuccess(res.message || `Broadcast transmitted successfully to ${previewCount ?? 'all'} verified members.`);
       setSubject('');
       setBody('');
+      setSelectedMemberIds([]);
       loadData();
     } catch (err: any) {
       setSendError(err.message || 'Transmission failed. Please check network logs.');
@@ -182,7 +192,8 @@ export const AdminMessagesPage: React.FC = () => {
                 >
                   <option value="all">Entire Registry (All Active Members)</option>
                   <option value="category">Specific Membership Category</option>
-                  <option value="individual">Individual Member</option>
+                  <option value="multiple">Selected Members (Multiple Selection)</option>
+                  <option value="individual">Single Individual Member</option>
                 </select>
               </div>
 
@@ -202,7 +213,7 @@ export const AdminMessagesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Conditional Target Dropdowns */}
+            {/* Conditional Target: Category */}
             {targetType === 'category' && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -222,6 +233,7 @@ export const AdminMessagesPage: React.FC = () => {
               </div>
             )}
 
+            {/* Conditional Target: Single Individual */}
             {targetType === 'individual' && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -238,6 +250,97 @@ export const AdminMessagesPage: React.FC = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Conditional Target: Multiple Members Selection */}
+            {targetType === 'multiple' && (
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-800">
+                      Select Multiple Recipients ({selectedMemberIds.length} selected)
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      Check members below who should receive this message.
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const filtered = members.filter((m) => {
+                          const q = memberSearchQuery.toLowerCase();
+                          const name = (m.user?.name || m.profile?.full_name || '').toLowerCase();
+                          const email = (m.user?.email || '').toLowerCase();
+                          const num = (m.member_number || '').toLowerCase();
+                          return name.includes(q) || email.includes(q) || num.includes(q);
+                        });
+                        setSelectedMemberIds(filtered.map((m) => m.id));
+                      }}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      Select All Filtered
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMemberIds([])}
+                      className="text-[11px] font-semibold text-slate-600 hover:text-slate-800"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Filter members by name, member number, or email..."
+                  value={memberSearchQuery}
+                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+
+                <div className="max-h-48 overflow-y-auto space-y-1 bg-white border border-slate-200 rounded-xl p-2">
+                  {members
+                    .filter((m) => {
+                      const q = memberSearchQuery.toLowerCase();
+                      const name = (m.user?.name || m.profile?.full_name || '').toLowerCase();
+                      const email = (m.user?.email || '').toLowerCase();
+                      const num = (m.member_number || '').toLowerCase();
+                      return name.includes(q) || email.includes(q) || num.includes(q);
+                    })
+                    .map((m) => {
+                      const isChecked = selectedMemberIds.includes(m.id);
+                      return (
+                        <label
+                          key={m.id}
+                          className={`flex items-center space-x-2.5 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                            isChecked ? 'bg-blue-50/80 font-medium' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setSelectedMemberIds((prev) =>
+                                prev.includes(m.id) ? prev.filter((id) => id !== m.id) : [...prev, m.id]
+                              );
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                          />
+                          <div className="flex-1 flex items-center justify-between">
+                            <span className="text-slate-900">
+                              {m.user?.name || m.profile?.full_name || 'Member'}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {m.member_number}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
               </div>
             )}
 

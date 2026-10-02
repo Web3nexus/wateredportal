@@ -65,6 +65,17 @@ export const adminService = {
     return api.delete(`/admin/applications/${id}`);
   },
 
+  async bulkDeleteApplications(ids: number[]): Promise<{ message: string; count: number }> {
+    return api.post('/admin/applications/bulk-delete', { ids });
+  },
+
+  async bulkApproveApplications(ids: number[], review_notes?: string): Promise<{
+    message: string;
+    approved_count: number;
+  }> {
+    return api.post('/admin/applications/bulk-approve', { ids, review_notes });
+  },
+
   async approveApplication(id: number, data: { review_notes?: string; initial_password?: string } = {}): Promise<{
     message: string;
     member_number: string;
@@ -148,6 +159,17 @@ export const adminService = {
     return api.delete(`/admin/members/${id}`);
   },
 
+  async bulkDeleteMembers(ids: number[]): Promise<{ message: string; count: number }> {
+    return api.post('/admin/members/bulk-delete', { ids });
+  },
+
+  async bulkUpdateMemberStatus(ids: number[], status: string, reason?: string): Promise<{
+    message: string;
+    count: number;
+  }> {
+    return api.post('/admin/members/bulk-status', { ids, status, reason });
+  },
+
   async updateMemberStatus(id: number, status: string, reason?: string): Promise<{
     message: string;
     member: Member;
@@ -181,9 +203,10 @@ export const adminService = {
   },
 
   async previewRecipients(data: {
-    target_type: 'all' | 'category' | 'individual';
+    target_type: 'all' | 'category' | 'individual' | 'multiple';
     membership_category_id?: number;
     target_member_id?: number;
+    target_member_ids?: number[];
   }): Promise<{
     count: number;
     target_type: string;
@@ -195,9 +218,10 @@ export const adminService = {
   async sendMessage(data: {
     subject: string;
     body: string;
-    target_type: 'all' | 'category' | 'individual';
+    target_type: 'all' | 'category' | 'individual' | 'multiple';
     membership_category_id?: number;
     target_member_id?: number;
+    target_member_ids?: number[];
     priority?: 'normal' | 'high' | 'urgent';
     sending_account_id?: number;
     send_email?: boolean;
