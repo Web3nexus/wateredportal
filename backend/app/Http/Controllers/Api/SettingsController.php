@@ -249,7 +249,13 @@ class SettingsController extends Controller
 HTML;
 
         try {
-            $transport = \App\Services\EmailService::buildTransport($host, $port, $encryption, $username, $password);
+            $transport = \App\Services\EmailService::buildTransport(
+                host: $host,
+                port: $port,
+                encryption: $encryption,
+                username: $username,
+                password: $password
+            );
 
             $mailer = new \Illuminate\Mail\Mailer(
                 'smtp_test_' . uniqid(),

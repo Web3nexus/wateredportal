@@ -49,7 +49,13 @@ Artisan::command('mail:test {recipient? : The email address to send a test messa
     $this->comment("Attempting SMTP handshake & dispatch to {$recipient}...");
 
     try {
-        $transport = \App\Services\EmailService::buildTransport($host, $port, $username, $password, $encryption);
+        $transport = \App\Services\EmailService::buildTransport(
+            host: $host,
+            port: $port,
+            encryption: $encryption,
+            username: $username,
+            password: $password
+        );
         $mailer = new \Illuminate\Mail\Mailer('live_test', app('view'), $transport, app('events'));
 
         $mailer->html("<p>This is a successful SMTP test from Watered Portal (" . now()->toIso8601String() . ").</p>", function ($msg) use ($recipient, $fromAddress, $fromName) {

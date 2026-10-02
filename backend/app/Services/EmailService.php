@@ -29,6 +29,20 @@ class EmailService
         ?string $username = null,
         ?string $password = null
     ): EsmtpTransport {
+        // Auto-correct in case parameters were passed in ($host, $port, $username, $password, $encryption) order
+        if (
+            (is_string($encryption) && str_contains($encryption, '@')) ||
+            (is_string($password) && in_array(strtolower($password), ['tls', 'ssl', 'smtps', 'starttls', 'none', 'null']))
+        ) {
+            $realUsername = $encryption;
+            $realPassword = $username;
+            $realEncryption = $password;
+
+            $encryption = $realEncryption;
+            $username = $realUsername;
+            $password = $realPassword;
+        }
+
         $port = $port > 0 ? $port : 587;
         $enc = strtolower((string) $encryption);
         $isDirectSsl = ($port === 465 || $enc === 'ssl' || $enc === 'smtps');
