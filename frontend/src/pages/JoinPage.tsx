@@ -15,6 +15,9 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
+  Upload,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 
 export const JoinPage: React.FC = () => {
@@ -59,7 +62,7 @@ export const JoinPage: React.FC = () => {
         }
       })
       .catch(() => {
-        setError('Unable to load membership court categories. Please refresh.');
+        setError('Unable to load membership categories. Please refresh the page.');
       });
   }, []);
 
@@ -82,44 +85,44 @@ export const JoinPage: React.FC = () => {
   };
 
   const steps = [
-    { num: 1, title: 'Identity', icon: User },
+    { num: 1, title: 'Personal', icon: User },
     { num: 2, title: 'Contact', icon: Phone },
-    { num: 3, title: 'Vocation', icon: Briefcase },
-    { num: 4, title: 'Court Tier', icon: Layers },
-    { num: 5, title: 'Portrait', icon: Camera },
-    { num: 6, title: 'Affirmation', icon: ShieldCheck },
+    { num: 3, title: 'Career', icon: Briefcase },
+    { num: 4, title: 'Tier', icon: Layers },
+    { num: 5, title: 'Photo', icon: Camera },
+    { num: 6, title: 'Review', icon: ShieldCheck },
   ];
 
   const validateStep = (step: number): boolean => {
     setError(null);
     if (step === 1) {
       if (!formData.first_name.trim() || !formData.last_name.trim()) {
-        setError('Please provide your complete legal name.');
+        setError('Please provide both your first and last name.');
         return false;
       }
     } else if (step === 2) {
       if (!formData.email.trim() || !formData.phone.trim() || !formData.current_location.trim()) {
-        setError('Please provide email, telephone, and current city of residence.');
+        setError('Please provide your email, phone number, and current city of residence.');
         return false;
       }
     } else if (step === 3) {
       if (!formData.occupation.trim() || !formData.workplace.trim()) {
-        setError('Please state your primary vocation and affiliated institution/venture.');
+        setError('Please specify your current occupation and organization or venture.');
         return false;
       }
     } else if (step === 4) {
       if (!formData.membership_category_id) {
-        setError('Please select a prospective court category.');
+        setError('Please select a membership tier.');
         return false;
       }
     } else if (step === 5) {
       if (!photoFile && !photoPreview) {
-        setError('Please upload a passport-style portrait photograph or select a demo sample.');
+        setError('Please upload a portrait photo or choose a sample image to proceed.');
         return false;
       }
     } else if (step === 6) {
       if (!formData.consent_agreed) {
-        setError('You must affirm the covenant before submitting your application.');
+        setError('Please agree to the membership terms and conditions to submit.');
         return false;
       }
     }
@@ -171,7 +174,7 @@ export const JoinPage: React.FC = () => {
         submitted_at: res.application.submitted_at || new Date().toISOString(),
       });
     } catch (err: any) {
-      setError(err?.message || 'Submission failed. Please check required fields.');
+      setError(err?.message || 'Submission failed. Please verify required fields and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -179,17 +182,23 @@ export const JoinPage: React.FC = () => {
 
   if (submittedApp) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-16">
-        <div className="w-full max-w-lg bg-white border border-[#eae7df] rounded-[4px] p-8 shadow-[0_2px_4px_rgba(24,24,27,0.04),0_12px_28px_-6px_rgba(24,24,27,0.08)] text-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 mx-auto flex items-center justify-center text-emerald-800 mb-5">
-            <CheckCircle className="w-7 h-7" />
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 sm:py-20 bg-slate-50/60 min-h-[calc(100vh-4rem)]">
+        <div className="w-full max-w-lg bg-white border border-slate-200/90 rounded-2xl p-8 sm:p-10 shadow-xl shadow-slate-200/50 text-center relative overflow-hidden">
+          {/* Top Accent Gradient Bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600" />
+
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 mx-auto flex items-center justify-center text-emerald-600 mb-5 shadow-sm">
+            <CheckCircle className="w-8 h-8" />
           </div>
 
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            APPLICATION SUBMITTED
+            Application Submitted
           </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Thank you for applying for membership with Watered
+          </p>
 
-          <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+          <div className="mt-6 p-4 bg-slate-50 border border-slate-200/80 rounded-xl text-center">
             <span className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1 font-semibold">
               Official Reference Number
             </span>
@@ -198,24 +207,23 @@ export const JoinPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="mt-6 text-xs text-slate-600 leading-relaxed space-y-2.5 text-left bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+          <div className="mt-6 text-xs text-slate-600 leading-relaxed space-y-2.5 text-left bg-slate-50/70 p-4 rounded-xl border border-slate-200/80">
+            <p className="font-medium text-slate-800">Next Steps:</p>
             <p>
-              Your membership application has been successfully submitted to Watered.
+              Your membership application has been received and logged into our verification queue.
             </p>
             <p>
-              The administration team will review your application and notify you directly via your registered email once your profile and credentials have been verified.
-            </p>
-            <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-200">
-              * Note: You will receive your official Member ID and Digital Pass upon approval.
+              Our administration team will review your credentials. Once approved, you will receive an email notification containing your official Member ID and access instructions.
             </p>
           </div>
 
-          <div className="mt-6 flex justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to="/"
-              className="inline-flex items-center space-x-2 text-xs bg-[#18181b] hover:bg-[#27272a] text-white px-6 py-2.5 rounded-[2px] transition-colors font-medium shadow-2xs"
+              to="/login"
+              className="inline-flex items-center justify-center space-x-2 text-xs md:text-sm font-medium bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white px-6 py-2.5 rounded-xl transition-all shadow-sm"
             >
-              <span>Return to Portal</span>
+              <span>Go to Sign In</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -224,62 +232,92 @@ export const JoinPage: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-2xl bg-white border border-[#eae7df] rounded-[4px] p-6 sm:p-10 shadow-[0_2px_4px_rgba(24,24,27,0.04),0_12px_28px_-6px_rgba(24,24,27,0.08)]">
-        <div className="mb-8">
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 sm:py-16 bg-slate-50/60 min-h-[calc(100vh-4rem)]">
+      <div className="w-full max-w-2xl bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-10 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+        {/* Top Accent Gradient Bar */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-slate-900 via-indigo-600 to-indigo-800" />
+
+        {/* Header */}
+        <div className="mb-8 pt-2">
           <div className="text-center mb-6">
-            <span className="text-[10px] tracking-widest text-[#966922] uppercase font-sans font-semibold">
-              Admittance Petition
-            </span>
-            <h1 className="font-serif text-2xl font-semibold tracking-wider text-stone-900 mt-1">
-              PETITION FOR ADMISSION
+            <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-800 items-center justify-center text-white font-bold text-xl mb-3 shadow-md ring-1 ring-white/10">
+              W
+            </div>
+            <div className="block">
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 border border-indigo-100 text-indigo-700 mb-1.5">
+                Watered Membership
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Membership Application
             </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Submit your credentials to obtain your official Watered digital pass
+            </p>
           </div>
 
           {/* Stepper Progress */}
-          <div className="flex items-center justify-between relative px-2">
-            <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-[1px] bg-stone-200 -z-0" />
-            {steps.map((s) => {
-              const Icon = s.icon;
-              const isActive = s.num === currentStep;
-              const isDone = s.num < currentStep;
-              return (
-                <div key={s.num} className="relative z-10 flex flex-col items-center bg-white px-1">
-                  <div
-                    className={`w-7 h-7 rounded-[2px] flex items-center justify-center text-xs font-sans font-medium transition-all ${
-                      isActive
-                        ? 'bg-[#18181b] text-white shadow-2xs'
-                        : isDone
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-[#f7f6f2] text-stone-400 border border-stone-200'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
+          <div className="relative px-2 pt-2">
+            <div className="hidden sm:block absolute left-8 right-8 top-5 h-[2px] bg-slate-200 -z-0" />
+            <div className="grid grid-cols-6 gap-1 relative z-10">
+              {steps.map((s) => {
+                const Icon = s.icon;
+                const isActive = s.num === currentStep;
+                const isDone = s.num < currentStep;
+                return (
+                  <div key={s.num} className="flex flex-col items-center text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isDone) setCurrentStep(s.num);
+                      }}
+                      disabled={!isDone && s.num !== currentStep}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-slate-900 text-white shadow-sm ring-4 ring-indigo-50'
+                          : isDone
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer hover:bg-emerald-100'
+                          : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      }`}
+                    >
+                      {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                    </button>
+                    <span
+                      className={`text-[10px] mt-1.5 font-medium tracking-tight truncate max-w-full ${
+                        isActive
+                          ? 'text-slate-900 font-semibold'
+                          : isDone
+                          ? 'text-emerald-700'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {s.title}
+                    </span>
                   </div>
-                  <span className="hidden sm:block text-[9px] uppercase tracking-wider text-stone-500 mt-1 font-sans">
-                    {s.title}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-rose-50 border border-rose-200 rounded-[2px] text-xs text-rose-800 flex items-start space-x-2">
+          <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start space-x-2.5">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="font-medium leading-relaxed">{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* STEP 1: Personal Details */}
           {currentStep === 1 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Personal Particulars
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Personal Information
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">Your authentic individual identity</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Enter your legal name and personal background
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -288,14 +326,14 @@ export const JoinPage: React.FC = () => {
                   required
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  placeholder="Kofi"
+                  placeholder="e.g. Alexander"
                 />
                 <Input
                   label="Last Name"
                   required
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  placeholder="Mensah"
+                  placeholder="e.g. Bennett"
                 />
               </div>
 
@@ -307,22 +345,25 @@ export const JoinPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
                 />
                 <Input
-                  label="Place of Birth / Heritage Ancestry"
+                  label="Place of Birth / Heritage"
                   value={formData.place_of_birth}
                   onChange={(e) => setFormData({ ...formData, place_of_birth: e.target.value })}
-                  placeholder="Accra, Ghana"
+                  placeholder="e.g. London, United Kingdom"
                 />
               </div>
             </div>
           )}
 
+          {/* STEP 2: Contact Info */}
           {currentStep === 2 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Contact Coordinates
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Contact Information
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">Direct, confidential communication channels</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Direct communication channels for member notifications
+                </p>
               </div>
 
               <Input
@@ -331,12 +372,12 @@ export const JoinPage: React.FC = () => {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="kofi.mensah@domain.com"
+                placeholder="alexander.bennett@domain.com"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Telephone / Signal Number"
+                  label="Phone / Mobile Number"
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -353,21 +394,24 @@ export const JoinPage: React.FC = () => {
             </div>
           )}
 
+          {/* STEP 3: Career / Vocation */}
           {currentStep === 3 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Professional Discipline & Calling
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Professional Background
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">Your craft, stewardship, and enterprise</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Your craft, industry experience, and enterprise
+                </p>
               </div>
 
               <Input
-                label="Occupation / Discipline"
+                label="Occupation / Title"
                 required
                 value={formData.occupation}
                 onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                placeholder="Architectural Designer / Urbanist"
+                placeholder="e.g. Architectural Director, Executive, Engineer"
               />
 
               <Input
@@ -375,32 +419,33 @@ export const JoinPage: React.FC = () => {
                 required
                 value={formData.workplace}
                 onChange={(e) => setFormData({ ...formData, workplace: e.target.value })}
-                placeholder="Mensah & Atelier Partners"
+                placeholder="e.g. Bennett Architectural Partners"
               />
 
               <div className="space-y-1.5 text-left">
-                <label className="block text-xs font-sans font-medium text-stone-700">
-                  Personal Statement / Reason for Petition
+                <label className="block text-xs font-medium text-slate-700">
+                  Personal Statement / Note <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <textarea
                   rows={3}
                   value={formData.personal_statement}
                   onChange={(e) => setFormData({ ...formData, personal_statement: e.target.value })}
-                  placeholder="Briefly state your commitment and purpose within the fellowship..."
-                  className="w-full bg-white border border-[#dcd7cb] focus:border-[#966922] focus:ring-1 focus:ring-[#966922]/15 rounded-[3px] px-3.5 py-2 text-xs md:text-sm text-stone-900 placeholder-stone-400 transition-colors focus:outline-none"
+                  placeholder="Share a brief statement about your background and interest in joining Watered..."
+                  className="w-full bg-white border border-slate-200/90 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/15 rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:outline-none"
                 />
               </div>
             </div>
           )}
 
+          {/* STEP 4: Tier Selection */}
           {currentStep === 4 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Prospective Court Category
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Membership Tier
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">
-                  Indicate the institutional branch most aligned with your service
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Select the membership category that best corresponds with your profile
                 </p>
               </div>
 
@@ -411,25 +456,33 @@ export const JoinPage: React.FC = () => {
                     <div
                       key={cat.id}
                       onClick={() => setFormData({ ...formData, membership_category_id: cat.id })}
-                      className={`p-3.5 rounded-[3px] border cursor-pointer transition-all ${
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
                         isSelected
-                          ? 'bg-[#faf7f0] border-[#966922] shadow-2xs'
-                          : 'bg-white border-[#eae7df] hover:border-stone-300'
+                          ? 'bg-indigo-50/50 border-indigo-600 shadow-sm ring-1 ring-indigo-600/30'
+                          : 'bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2 h-2 rounded-full inline-block bg-[#966922]" />
-                          <h4 className="text-xs md:text-sm font-semibold text-stone-900 font-serif">
+                        <div className="flex items-center space-x-2.5">
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              isSelected
+                                ? 'border-indigo-600 bg-indigo-600 text-white'
+                                : 'border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </div>
+                          <h4 className="text-xs md:text-sm font-semibold text-slate-900">
                             {cat.name}
                           </h4>
                         </div>
-                        <span className="text-[10px] uppercase font-mono text-stone-400">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                           Tier #{cat.rank}
                         </span>
                       </div>
                       {cat.description && (
-                        <p className="text-xs text-stone-600 mt-1 leading-relaxed font-sans">
+                        <p className="text-xs text-slate-600 mt-1.5 pl-6 leading-relaxed">
                           {cat.description}
                         </p>
                       )}
@@ -440,51 +493,52 @@ export const JoinPage: React.FC = () => {
             </div>
           )}
 
+          {/* STEP 5: Portrait Photo */}
           {currentStep === 5 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Official Credential Photograph
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Passport-Style Portrait
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">
-                  Required for your digital membership card and physical register
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Required for your verified digital membership pass
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-[#faf8f4] rounded-[3px] border border-[#eae3d5]">
-                <div className="w-24 h-28 rounded-[2px] border border-[#dcd4c3] overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-2xs p-0.5">
+              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                <div className="w-28 h-32 rounded-xl border-2 border-dashed border-slate-300 overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-sm p-1">
                   {photoPreview ? (
                     <img
                       src={photoPreview}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
-                    <div className="text-center text-stone-400 p-2">
-                      <Camera className="w-7 h-7 mx-auto mb-1 text-stone-400" />
-                      <span className="text-[9px] uppercase tracking-wider">No Photo</span>
+                    <div className="text-center text-slate-400 p-2">
+                      <Camera className="w-8 h-8 mx-auto mb-1 text-slate-400" />
+                      <span className="text-[9px] uppercase tracking-wider font-medium">No Photo</span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex-1 space-y-3 w-full">
                   <div>
-                    <label className="block text-xs font-sans font-medium text-stone-700 mb-1">
+                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
                       Upload Passport-Style Photograph
                     </label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handlePhotoChange}
-                      className="text-xs text-stone-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-[2px] file:border file:border-[#dcd7cb] file:text-xs file:font-medium file:bg-white file:text-stone-800 hover:file:bg-[#f6f5f1] file:cursor-pointer"
+                      className="text-xs text-slate-500 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border file:border-slate-200 file:text-xs file:font-medium file:bg-white file:text-slate-800 hover:file:bg-slate-50 file:cursor-pointer"
                     />
                   </div>
 
-                  <div className="pt-2 border-t border-stone-200">
-                    <span className="text-[10px] text-stone-500 uppercase tracking-wider block mb-1.5 font-sans">
+                  <div className="pt-2 border-t border-slate-200/80">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1.5 font-medium">
                       Or select sample portrait for demonstration:
                     </span>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -492,7 +546,7 @@ export const JoinPage: React.FC = () => {
                             'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80'
                           )
                         }
-                        className="text-[11px] bg-white hover:bg-[#f8f7f4] text-stone-700 px-2.5 py-1 rounded-[2px] border border-[#dcd7cb] shadow-2xs cursor-pointer"
+                        className="text-[11px] font-medium bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200/90 shadow-2xs cursor-pointer transition-colors"
                       >
                         Sample Portrait 1
                       </button>
@@ -503,7 +557,7 @@ export const JoinPage: React.FC = () => {
                             'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80'
                           )
                         }
-                        className="text-[11px] bg-white hover:bg-[#f8f7f4] text-stone-700 px-2.5 py-1 rounded-[2px] border border-[#dcd7cb] shadow-2xs cursor-pointer"
+                        className="text-[11px] font-medium bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200/90 shadow-2xs cursor-pointer transition-colors"
                       >
                         Sample Portrait 2
                       </button>
@@ -514,43 +568,52 @@ export const JoinPage: React.FC = () => {
             </div>
           )}
 
+          {/* STEP 6: Review & Affirmation */}
           {currentStep === 6 && (
             <div className="space-y-4">
-              <div className="border-b border-[#eae7df] pb-2">
-                <h3 className="font-serif text-sm font-semibold text-stone-900">
-                  Affirmation & Covenant
+              <div className="border-b border-slate-200/80 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Review & Submit
                 </h3>
-                <p className="text-xs text-stone-500 font-sans">Final confirmation before register submission</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Confirm your details before final submission
+                </p>
               </div>
 
-              <div className="bg-[#faf8f4] p-4 rounded-[3px] border border-[#eae3d5] text-xs space-y-2 font-sans">
+              <div className="bg-slate-50/90 p-4 rounded-xl border border-slate-200/80 text-xs space-y-2.5">
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Full Legal Name:</span>
-                  <span className="font-medium text-stone-900">
+                  <span className="text-slate-500">Full Legal Name:</span>
+                  <span className="font-semibold text-slate-900">
                     {formData.first_name} {formData.last_name}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Contact Coordinates:</span>
-                  <span className="font-medium text-stone-900">
+                  <span className="text-slate-500">Contact Details:</span>
+                  <span className="font-medium text-slate-900">
                     {formData.email} &bull; {formData.phone}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Vocation & Organization:</span>
-                  <span className="font-medium text-stone-900">
+                  <span className="text-slate-500">Location:</span>
+                  <span className="font-medium text-slate-900">
+                    {formData.current_location}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Professional Background:</span>
+                  <span className="font-medium text-slate-900">
                     {formData.occupation} at {formData.workplace}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Court Tier:</span>
-                  <span className="font-medium text-[#8a5d1b]">
+                  <span className="text-slate-500">Selected Tier:</span>
+                  <span className="font-semibold text-indigo-700">
                     {categories.find((c) => c.id === formData.membership_category_id)?.name}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 bg-[#faf6ed] border border-[#e2d5bd] rounded-[3px]">
+              <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
                 <label className="flex items-start space-x-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -558,26 +621,25 @@ export const JoinPage: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, consent_agreed: e.target.checked })
                     }
-                    className="mt-0.5 rounded-[2px] border-[#dcd7cb] text-[#966922] focus:ring-0"
+                    className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                   />
-                  <span className="text-xs text-stone-700 leading-relaxed font-sans">
-                    I solemnly affirm that the personal and professional particulars provided herein
-                    are authentic and accurate. I understand that submission does not confer automatic
-                    access until reviewed and ratified by the High Council Administration.
+                  <span className="text-xs text-slate-700 leading-relaxed">
+                    I confirm that the personal and professional information provided is accurate and authentic. I understand that application submission is subject to administrative review before digital pass activation.
                   </span>
                 </label>
               </div>
             </div>
           )}
 
-          <div className="pt-4 border-t border-[#eae7df] flex items-center justify-between">
+          {/* Navigation Controls */}
+          <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between">
             {currentStep > 1 ? (
               <Button type="button" variant="secondary" onClick={prevStep}>
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Previous
               </Button>
             ) : (
-              <Link to="/" className="text-xs text-stone-500 hover:text-stone-800 font-sans">
+              <Link to="/login" className="text-xs text-slate-500 hover:text-slate-800 font-medium">
                 Cancel
               </Link>
             )}
