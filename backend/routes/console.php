@@ -7,7 +7,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('mail:test {recipient? : The email address to send a test message to} {--reset-db : Clear database SMTP overrides and force .env credentials}', function ($recipient = null) {
+Artisan::command('mail:test {recipient? : The email address to send a test message to} {--from= : Override the From address for this test} {--reset-db : Clear database SMTP overrides and force .env credentials}', function ($recipient = null) {
     if ($this->option('reset-db')) {
         \App\Models\Setting::whereIn('key', [
             'smtp_host',
@@ -30,7 +30,7 @@ Artisan::command('mail:test {recipient? : The email address to send a test messa
     $username = \App\Models\Setting::get('smtp_username', env('MAIL_USERNAME', config('mail.mailers.smtp.username', '')));
     $password = \App\Models\Setting::get('smtp_password', env('MAIL_PASSWORD', config('mail.mailers.smtp.password', '')));
     $encryption = \App\Models\Setting::get('smtp_encryption', env('MAIL_ENCRYPTION', config('mail.mailers.smtp.encryption', 'tls')));
-    $fromAddress = \App\Models\Setting::get('smtp_from_address', env('MAIL_FROM_ADDRESS', config('mail.from.address', 'noreply@mywatered.com')));
+    $fromAddress = $this->option('from') ?: \App\Models\Setting::get('smtp_from_address', env('MAIL_FROM_ADDRESS', config('mail.from.address', 'noreply@mywatered.com')));
     $fromName = \App\Models\Setting::get('smtp_from_name', env('MAIL_FROM_NAME', 'Watered'));
 
     $this->info('--- Current Mail Configuration ---');
@@ -39,7 +39,7 @@ Artisan::command('mail:test {recipient? : The email address to send a test messa
     $this->line("Encryption: {$encryption}");
     $this->line("Username:   {$username} " . ($dbUser ? '[DB override]' : '[from .env]'));
     $this->line("Password:   " . (empty($password) ? '<EMPTY>' : str_repeat('*', min(strlen($password), 8)) . ' (length ' . strlen($password) . ')') . ($hasDbPass ? ' [DB override]' : ' [from .env]'));
-    $this->line("From:       {$fromName} <{$fromAddress}>");
+    $this->line("From:       {$fromName} <{$fromAddress}>" . ($this->option('from') ? ' [--from override]' : ''));
     $this->info('----------------------------------');
 
     if (empty($recipient)) {
@@ -61,6 +61,7 @@ Artisan::command('mail:test {recipient? : The email address to send a test messa
         $mailer->html("<p>This is a successful SMTP test from Watered Portal (" . now()->toIso8601String() . ").</p>", function ($msg) use ($recipient, $fromAddress, $fromName) {
             $msg->to($recipient)
                 ->from($fromAddress, $fromName)
+                ->returnPath($fromAddress)
                 ->subject('Watered Portal — Live SMTP Test');
         });
 

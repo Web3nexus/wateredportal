@@ -269,6 +269,7 @@ HTML;
             $mailer->html($htmlBody, function ($message) use ($recipientEmail, $fromAddress, $fromName, $subject) {
                 $message->to($recipientEmail)
                     ->from($fromAddress, $fromName)
+                    ->returnPath($fromAddress)
                     ->subject($subject);
             });
 

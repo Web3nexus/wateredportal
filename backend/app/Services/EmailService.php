@@ -97,6 +97,7 @@ class EmailService
         );
 
         $mailer->alwaysFrom($fromAddress, $fromName);
+        $mailer->alwaysReturnPath($fromAddress);
 
         return [
             'mailer' => $mailer,

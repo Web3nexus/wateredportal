@@ -71,6 +71,7 @@ class SendingEmailAccount extends Model
         );
 
         $mailer->alwaysFrom($this->from_email, $this->from_name);
+        $mailer->alwaysReturnPath($this->from_email);
 
         return $mailer;
     }
