@@ -12,8 +12,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Filter,
-  UserCheck,
-  UserX,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 export const AdminMembersPage: React.FC = () => {
@@ -24,14 +24,48 @@ export const AdminMembersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Manage Modal State
+  // Manage / Edit Modal State
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [newCategoryId, setNewCategoryId] = useState<number | undefined>(undefined);
-  const [newStatus, setNewStatus] = useState<string>('');
-  const [reason, setReason] = useState<string>('');
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    membership_category_id: '' as string | number,
+    status: 'active' as MemberStatus,
+    occupation: '',
+    workplace: '',
+    current_location: '',
+    valid_until: '',
+    bio: '',
+    new_password: '',
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Create Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    membership_category_id: '' as string | number,
+    status: 'active',
+    occupation: '',
+    workplace: '',
+    current_location: '',
+    initial_password: '',
+    valid_until: '',
+    bio: '',
+  });
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Delete Confirmation State
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = () => {
     setIsLoading(true);
@@ -53,7 +87,12 @@ export const AdminMembersPage: React.FC = () => {
   }, [selectedCategory, selectedStatus]);
 
   useEffect(() => {
-    adminService.getCategories().then((res) => setCategories(res.categories));
+    adminService.getCategories().then((res) => {
+      setCategories(res.categories);
+      if (res.categories.length > 0 && !createForm.membership_category_id) {
+        setCreateForm((prev) => ({ ...prev, membership_category_id: res.categories[0].id }));
+      }
+    });
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -63,49 +102,123 @@ export const AdminMembersPage: React.FC = () => {
 
   const handleOpenManageModal = (member: Member) => {
     setSelectedMember(member);
-    setNewCategoryId(member.membership_category_id);
-    setNewStatus(member.status);
-    setReason('');
     setActionSuccess(null);
     setActionError(null);
+
+    // Split name or use profile names
+    const parts = (member.user?.name || member.profile?.full_name || '').split(' ');
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || '';
+
+    setEditForm({
+      first_name: firstName,
+      last_name: lastName,
+      email: member.user?.email || '',
+      phone: member.profile?.phone || '',
+      membership_category_id: member.membership_category_id,
+      status: member.status,
+      occupation: member.profile?.occupation || '',
+      workplace: member.profile?.workplace || '',
+      current_location: member.profile?.current_location || '',
+      valid_until: member.valid_until ? member.valid_until.slice(0, 10) : '',
+      bio: member.profile?.bio || '',
+      new_password: '',
+    });
   };
 
-  const handleUpdateCategory = async () => {
-    if (!selectedMember || !newCategoryId) return;
-    setIsUpdating(true);
-    setActionError(null);
-    setActionSuccess(null);
-
-    try {
-      await adminService.updateMemberCategory(selectedMember.id, newCategoryId);
-      setActionSuccess('Membership category updated successfully.');
-      loadData();
-    } catch (err: any) {
-      setActionError(err.message || 'Failed to update category.');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleUpdateStatus = async (status: MemberStatus) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!selectedMember) return;
-    if (!reason) {
-      setActionError('Please provide a reason for changing the membership status.');
-      return;
-    }
     setIsUpdating(true);
     setActionError(null);
     setActionSuccess(null);
 
     try {
-      await adminService.updateMemberStatus(selectedMember.id, status, reason);
-      setActionSuccess(`Membership status updated to ${status}.`);
+      await adminService.updateMember(selectedMember.id, {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        email: editForm.email,
+        phone: editForm.phone,
+        membership_category_id: Number(editForm.membership_category_id),
+        status: editForm.status,
+        occupation: editForm.occupation,
+        workplace: editForm.workplace,
+        current_location: editForm.current_location,
+        valid_until: editForm.valid_until || undefined,
+        bio: editForm.bio,
+        new_password: editForm.new_password || undefined,
+      });
+
+      setActionSuccess('Member profile updated successfully.');
       loadData();
-      setSelectedMember((prev) => (prev ? { ...prev, status } : null));
+      setTimeout(() => {
+        setSelectedMember(null);
+      }, 1000);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to update status.');
+      setActionError(err.message || 'Failed to update member.');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+    setIsCreating(true);
+
+    try {
+      await adminService.createMember({
+        first_name: createForm.first_name,
+        last_name: createForm.last_name,
+        email: createForm.email,
+        phone: createForm.phone,
+        membership_category_id: Number(createForm.membership_category_id),
+        status: createForm.status,
+        occupation: createForm.occupation,
+        workplace: createForm.workplace,
+        current_location: createForm.current_location,
+        initial_password: createForm.initial_password || undefined,
+        valid_until: createForm.valid_until || undefined,
+        bio: createForm.bio,
+      });
+
+      setIsCreateOpen(false);
+      setCreateForm({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        membership_category_id: categories[0]?.id || '',
+        status: 'active',
+        occupation: '',
+        workplace: '',
+        current_location: '',
+        initial_password: '',
+        valid_until: '',
+        bio: '',
+      });
+      loadData();
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to register member.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingMember) return;
+    setIsDeleting(true);
+    try {
+      await adminService.deleteMember(deletingMember.id);
+      setDeletingMember(null);
+      if (selectedMember?.id === deletingMember.id) {
+        setSelectedMember(null);
+      }
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete member.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -123,6 +236,19 @@ export const AdminMembersPage: React.FC = () => {
           <p className="text-sm text-slate-500 mt-0.5">
             Manage active Watered members, category assignments, and account credentials
           </p>
+        </div>
+        <div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setCreateError(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Register Member
+          </Button>
         </div>
       </div>
 
@@ -257,24 +383,34 @@ export const AdminMembersPage: React.FC = () => {
                   <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
                     {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—'}
                   </td>
-                  <td className="py-3.5 px-4 text-right space-x-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleOpenManageModal(member)}
-                    >
-                      <Edit className="w-3.5 h-3.5 text-blue-600 mr-1" />
-                      <span>Manage</span>
-                    </Button>
-                    <a
-                      href={`/verify/${member.secure_qr_id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-xs transition-colors"
-                      title="View public verification record"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                  <td className="py-3.5 px-4 text-right">
+                    <div className="flex items-center justify-end space-x-1.5">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenManageModal(member)}
+                      >
+                        <Edit className="w-3.5 h-3.5 text-blue-600 mr-1" />
+                        <span>Manage</span>
+                      </Button>
+                      <a
+                        href={`/verify/${member.secure_qr_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 text-xs transition-colors"
+                        title="View public verification record"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingMember(member)}
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Delete member"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -291,13 +427,14 @@ export const AdminMembersPage: React.FC = () => {
           title={`Member Profile: ${selectedMember.member_number}`}
           maxWidth="lg"
         >
-          <div className="space-y-6 font-sans">
+          <form onSubmit={handleEditSubmit} className="space-y-5 font-sans text-xs sm:text-sm">
             {actionSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center space-x-2 text-emerald-800 text-xs">
                 <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{actionSuccess}</span>
               </div>
             )}
+
             {actionError && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center space-x-2 text-rose-800 text-xs">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -340,128 +477,352 @@ export const AdminMembersPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Member Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
-                <div className="text-slate-400 uppercase font-semibold text-[10px]">Email Address</div>
-                <div className="text-slate-900 font-mono">{selectedMember.user?.email || 'N/A'}</div>
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
               </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
-                <div className="text-slate-400 uppercase font-semibold text-[10px]">Occupation / Discipline</div>
-                <div className="text-slate-900 font-medium">{selectedMember.profile?.occupation || 'Not registered'}</div>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
-                <div className="text-slate-400 uppercase font-semibold text-[10px]">Current Location</div>
-                <div className="text-slate-900">{selectedMember.profile?.current_location || 'Not specified'}</div>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-0.5">
-                <div className="text-slate-400 uppercase font-semibold text-[10px]">Registration Date</div>
-                <div className="text-slate-900 font-mono">
-                  {selectedMember.joined_at ? new Date(selectedMember.joined_at).toLocaleDateString() : '—'}
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
               </div>
             </div>
 
-            {/* Public Record Link */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Category Tier</label>
+                <select
+                  value={editForm.membership_category_id}
+                  onChange={(e) => setEditForm({ ...editForm, membership_category_id: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as MemberStatus })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                >
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="deactivated">Deactivated</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Occupation</label>
+                <input
+                  type="text"
+                  value={editForm.occupation}
+                  onChange={(e) => setEditForm({ ...editForm, occupation: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Workplace / Organization</label>
+                <input
+                  type="text"
+                  value={editForm.workplace}
+                  onChange={(e) => setEditForm({ ...editForm, workplace: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={editForm.current_location}
+                  onChange={(e) => setEditForm({ ...editForm, current_location: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Valid Until (Expiry)</label>
+                <input
+                  type="date"
+                  value={editForm.valid_until}
+                  onChange={(e) => setEditForm({ ...editForm, valid_until: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Reset Password (leave empty to keep current password)
+              </label>
+              <input
+                type="password"
+                placeholder="Enter new member password..."
+                value={editForm.new_password}
+                onChange={(e) => setEditForm({ ...editForm, new_password: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
               <a
                 href={`/verify/${selectedMember.secure_qr_id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center px-3 py-1.5 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors font-medium"
+                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
               >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Open Public Verification Record
+                <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                Public Verification Record
               </a>
-            </div>
 
-            {/* Category Reassignment */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Update Membership Category
-                </h4>
-                <span className="text-[10px] text-slate-400">Recorded in audit trail</span>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <select
-                  value={newCategoryId || ''}
-                  onChange={(e) => setNewCategoryId(Number(e.target.value))}
-                  className="flex-1 bg-white border border-slate-200 text-xs text-slate-900 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-600"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} (Rank #{c.rank})
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleUpdateCategory}
-                  isLoading={isUpdating}
-                  disabled={newCategoryId === selectedMember.membership_category_id}
-                >
-                  Save Category
+              <div className="flex space-x-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => setSelectedMember(null)}>
+                  Close
+                </Button>
+                <Button type="submit" variant="primary" size="sm" isLoading={isUpdating}>
+                  Save Changes
                 </Button>
               </div>
             </div>
-
-            {/* Status Transition */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Update Membership Status
-                </h4>
-                <span className="text-[10px] text-slate-400">Controls member portal login access</span>
-              </div>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Reason for status change / administrative note (required for audit)..."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full bg-white border border-slate-200 text-xs text-slate-900 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-600"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleUpdateStatus('active')}
-                    disabled={selectedMember.status === 'active' || isUpdating}
-                  >
-                    <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                    Activate Member
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleUpdateStatus('suspended')}
-                    disabled={selectedMember.status === 'suspended' || isUpdating}
-                  >
-                    <UserX className="w-3.5 h-3.5 mr-1" />
-                    Suspend Member
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleUpdateStatus('deactivated')}
-                    disabled={selectedMember.status === 'deactivated' || isUpdating}
-                  >
-                    Deactivate
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <Button variant="secondary" size="sm" onClick={() => setSelectedMember(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
+          </form>
         </Modal>
       )}
+
+      {/* Register Member Modal */}
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Direct Member Registration"
+        description="Issue member number, credentials, and activate directory record directly."
+        maxWidth="lg"
+      >
+        <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs sm:text-sm">
+          {createError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{createError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
+              <input
+                type="text"
+                required
+                value={createForm.first_name}
+                onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
+              <input
+                type="text"
+                required
+                value={createForm.last_name}
+                onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+              <input
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number *</label>
+              <input
+                type="tel"
+                required
+                value={createForm.phone}
+                onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Category Tier *</label>
+              <select
+                required
+                value={createForm.membership_category_id}
+                onChange={(e) => setCreateForm({ ...createForm, membership_category_id: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+              <select
+                value={createForm.status}
+                onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Occupation</label>
+              <input
+                type="text"
+                value={createForm.occupation}
+                onChange={(e) => setCreateForm({ ...createForm, occupation: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Workplace / Organization</label>
+              <input
+                type="text"
+                value={createForm.workplace}
+                onChange={(e) => setCreateForm({ ...createForm, workplace: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Current Location</label>
+              <input
+                type="text"
+                placeholder="e.g. Lagos, Nigeria"
+                value={createForm.current_location}
+                onChange={(e) => setCreateForm({ ...createForm, current_location: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Valid Until (Expiry)</label>
+              <input
+                type="date"
+                value={createForm.valid_until}
+                onChange={(e) => setCreateForm({ ...createForm, valid_until: e.target.value })}
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Initial Password (leave empty to autogenerate)
+            </label>
+            <input
+              type="password"
+              placeholder="Auto-generated if empty"
+              value={createForm.initial_password}
+              onChange={(e) => setCreateForm({ ...createForm, initial_password: e.target.value })}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm" isLoading={isCreating}>
+              Register Member
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Member Confirmation Modal */}
+      <Modal
+        isOpen={!!deletingMember}
+        onClose={() => setDeletingMember(null)}
+        title="Delete Member"
+        description="Permanently remove member from directory"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs sm:text-sm text-slate-600">
+            Are you sure you want to permanently delete member{' '}
+            <strong className="text-slate-900 font-mono">{deletingMember?.member_number}</strong> (
+            <strong className="text-slate-900">
+              {deletingMember?.user?.name || deletingMember?.profile?.full_name}
+            </strong>
+            )?
+          </p>
+          <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-xl">
+            This will permanently remove their member record, profile, verification record, and login account. This cannot be undone.
+          </p>
+
+          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+            <Button variant="secondary" size="sm" onClick={() => setDeletingMember(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleDelete} isLoading={isDeleting}>
+              <Trash2 className="w-3.5 h-3.5 mr-1" />
+              Delete Permanently
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

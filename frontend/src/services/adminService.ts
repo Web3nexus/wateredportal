@@ -47,6 +47,24 @@ export const adminService = {
     return api.get<{ application: MembershipApplication }>(`/admin/applications/${id}`);
   },
 
+  async createApplication(data: Partial<MembershipApplication>): Promise<{
+    message: string;
+    application: MembershipApplication;
+  }> {
+    return api.post('/admin/applications', data);
+  },
+
+  async updateApplication(id: number, data: Partial<MembershipApplication>): Promise<{
+    message: string;
+    application: MembershipApplication;
+  }> {
+    return api.patch(`/admin/applications/${id}`, data);
+  },
+
+  async deleteApplication(id: number): Promise<{ message: string }> {
+    return api.delete(`/admin/applications/${id}`);
+  },
+
   async approveApplication(id: number, data: { review_notes?: string; initial_password?: string } = {}): Promise<{
     message: string;
     member_number: string;
@@ -93,6 +111,41 @@ export const adminService = {
 
   async getMember(id: number): Promise<{ member: Member }> {
     return api.get<{ member: Member }>(`/admin/members/${id}`);
+  },
+
+  async createMember(data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    membership_category_id: number;
+    status?: string;
+    occupation?: string;
+    workplace?: string;
+    current_location?: string;
+    initial_password?: string;
+    valid_until?: string;
+    bio?: string;
+  }): Promise<{ message: string; member: Member }> {
+    return api.post('/admin/members', data);
+  },
+
+  async updateMember(id: number, data: Partial<Member> & {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    occupation?: string;
+    workplace?: string;
+    current_location?: string;
+    new_password?: string;
+    bio?: string;
+  }): Promise<{ message: string; member: Member }> {
+    return api.patch(`/admin/members/${id}`, data);
+  },
+
+  async deleteMember(id: number): Promise<{ message: string }> {
+    return api.delete(`/admin/members/${id}`);
   },
 
   async updateMemberStatus(id: number, status: string, reason?: string): Promise<{

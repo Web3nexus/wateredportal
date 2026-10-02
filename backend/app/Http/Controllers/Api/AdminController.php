@@ -58,7 +58,15 @@ class AdminController extends Controller
         $query = MembershipApplication::with(['category', 'reviewer:id,name']);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->query('status'));
+            $status = $request->query('status');
+            if ($status === 'active' || $status === 'active_pending') {
+                $query->whereIn('status', ['pending', 'under_review', 'contact_required']);
+            } elseif ($status !== 'all') {
+                $query->where('status', $status);
+            }
+        } else {
+            // Default: Show pending/active applications; approved applications move to Member Directory
+            $query->whereIn('status', ['pending', 'under_review', 'contact_required']);
         }
 
         if ($request->filled('category_id')) {
@@ -82,12 +90,108 @@ class AdminController extends Controller
         ]);
     }
 
+    public function storeApplication(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'membership_category_id' => ['required', 'exists:membership_categories,id'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'date_of_birth' => ['nullable', 'date'],
+            'place_of_birth' => ['nullable', 'string', 'max:150'],
+            'current_location' => ['required', 'string', 'max:150'],
+            'occupation' => ['required', 'string', 'max:150'],
+            'workplace' => ['required', 'string', 'max:150'],
+            'personal_statement' => ['nullable', 'string', 'max:2000'],
+            'status' => ['nullable', 'in:pending,under_review,contact_required'],
+        ]);
+
+        $appNumber = 'APP-' . date('Y') . '-' . strtoupper(Str::random(6));
+
+        $application = MembershipApplication::create([
+            'application_number' => $appNumber,
+            'membership_category_id' => $validated['membership_category_id'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'date_of_birth' => $validated['date_of_birth'] ?? null,
+            'place_of_birth' => $validated['place_of_birth'] ?? null,
+            'current_location' => $validated['current_location'],
+            'occupation' => $validated['occupation'],
+            'workplace' => $validated['workplace'],
+            'personal_statement' => $validated['personal_statement'] ?? null,
+            'status' => $validated['status'] ?? 'pending',
+        ]);
+
+        AuditLog::record('application_manually_created', $application, [
+            'application_number' => $appNumber,
+            'name' => "{$validated['first_name']} {$validated['last_name']}",
+        ], $request->user());
+
+        return response()->json([
+            'message' => 'Application created successfully.',
+            'application' => $application->load('category'),
+        ], 201);
+    }
+
     public function showApplication(int $id): JsonResponse
     {
         $application = MembershipApplication::with(['category', 'reviewer:id,name'])->findOrFail($id);
 
         return response()->json([
             'application' => $application,
+        ]);
+    }
+
+    public function updateApplication(Request $request, int $id): JsonResponse
+    {
+        $application = MembershipApplication::findOrFail($id);
+
+        $validated = $request->validate([
+            'membership_category_id' => ['sometimes', 'required', 'exists:membership_categories,id'],
+            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'email' => ['sometimes', 'required', 'email', 'max:255'],
+            'phone' => ['sometimes', 'required', 'string', 'max:50'],
+            'date_of_birth' => ['nullable', 'date'],
+            'place_of_birth' => ['nullable', 'string', 'max:150'],
+            'current_location' => ['sometimes', 'required', 'string', 'max:150'],
+            'occupation' => ['sometimes', 'required', 'string', 'max:150'],
+            'workplace' => ['sometimes', 'required', 'string', 'max:150'],
+            'personal_statement' => ['nullable', 'string', 'max:2000'],
+            'status' => ['sometimes', 'required', 'in:pending,under_review,contact_required,approved,rejected,completed'],
+            'review_notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $application->update($validated);
+
+        AuditLog::record('application_updated', $application, [
+            'application_number' => $application->application_number,
+        ], $request->user());
+
+        return response()->json([
+            'message' => 'Application details updated.',
+            'application' => $application->load('category', 'reviewer'),
+        ]);
+    }
+
+    public function destroyApplication(Request $request, int $id): JsonResponse
+    {
+        $application = MembershipApplication::findOrFail($id);
+        $appNumber = $application->application_number;
+        $name = "{$application->first_name} {$application->last_name}";
+
+        $application->delete();
+
+        AuditLog::record('application_deleted', null, [
+            'application_number' => $appNumber,
+            'name' => $name,
+        ], $request->user());
+
+        return response()->json([
+            'message' => "Application [{$appNumber}] has been permanently removed.",
         ]);
     }
 
@@ -371,6 +475,220 @@ class AdminController extends Controller
             'message' => 'Member category reassigned and upgrade notification sent.',
             'member' => $member->load('category', 'profile'),
         ]);
+    }
+
+    public function storeMember(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:50'],
+            'membership_category_id' => ['required', 'exists:membership_categories,id'],
+            'status' => ['nullable', 'in:active,pending,suspended,deactivated'],
+            'occupation' => ['nullable', 'string', 'max:150'],
+            'workplace' => ['nullable', 'string', 'max:150'],
+            'current_location' => ['nullable', 'string', 'max:150'],
+            'initial_password' => ['nullable', 'string', 'min:8'],
+            'valid_until' => ['nullable', 'date'],
+            'bio' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $admin = $request->user();
+        $defaultPassword = $validated['initial_password'] ?? 'Welcome@Watered' . date('Y');
+
+        DB::beginTransaction();
+        try {
+            $user = User::create([
+                'name' => "{$validated['first_name']} {$validated['last_name']}",
+                'email' => $validated['email'],
+                'password' => Hash::make($defaultPassword),
+                'role' => 'member',
+                'status' => in_array($validated['status'] ?? 'active', ['active', 'pending']) ? 'active' : 'suspended',
+            ]);
+
+            $lastMember = Member::orderBy('id', 'desc')->first();
+            $nextSequence = $lastMember ? ($lastMember->id + 100) : 100;
+            $memberNumber = 'W-' . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
+
+            $member = Member::create([
+                'user_id' => $user->id,
+                'membership_category_id' => $validated['membership_category_id'],
+                'member_number' => $memberNumber,
+                'secure_qr_id' => 'sec_w_' . Str::random(32),
+                'status' => $validated['status'] ?? 'active',
+                'joined_at' => now(),
+                'valid_until' => !empty($validated['valid_until']) ? $validated['valid_until'] : now()->addYears(2),
+            ]);
+
+            MemberProfile::create([
+                'member_id' => $member->id,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'phone' => $validated['phone'],
+                'current_location' => $validated['current_location'] ?? null,
+                'occupation' => $validated['occupation'] ?? null,
+                'workplace' => $validated['workplace'] ?? null,
+                'bio' => $validated['bio'] ?? null,
+            ]);
+
+            AuditLog::record('member_manually_registered', $member, [
+                'member_number' => $memberNumber,
+                'name' => "{$validated['first_name']} {$validated['last_name']}",
+                'email' => $user->email,
+            ], $admin);
+
+            DB::commit();
+
+            // Send admission credentials email
+            $category = MembershipCategory::find($validated['membership_category_id']);
+            $dummyApp = new MembershipApplication([
+                'application_number' => 'REG-' . strtoupper(Str::random(6)),
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $user->email,
+            ]);
+            $dummyApp->category = $category;
+            EmailService::sendApplicationApprovedEmail($dummyApp, $member, $user, $defaultPassword);
+
+            return response()->json([
+                'message' => 'Member successfully registered into the directory and credentials sent.',
+                'member' => $member->load(['user', 'category', 'profile']),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to register member: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function updateMember(Request $request, int $id): JsonResponse
+    {
+        $member = Member::with(['user', 'profile'])->findOrFail($id);
+
+        $validated = $request->validate([
+            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'email' => ['sometimes', 'required', 'email', 'max:255', 'unique:users,email,' . ($member->user_id ?? 0)],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'membership_category_id' => ['sometimes', 'required', 'exists:membership_categories,id'],
+            'status' => ['sometimes', 'required', 'in:active,pending,suspended,deactivated'],
+            'occupation' => ['nullable', 'string', 'max:150'],
+            'workplace' => ['nullable', 'string', 'max:150'],
+            'current_location' => ['nullable', 'string', 'max:150'],
+            'valid_until' => ['nullable', 'date'],
+            'joined_at' => ['nullable', 'date'],
+            'bio' => ['nullable', 'string', 'max:2000'],
+            'new_password' => ['nullable', 'string', 'min:8'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Update User
+            if ($member->user) {
+                $userData = [];
+                if (isset($validated['first_name']) || isset($validated['last_name'])) {
+                    $fn = $validated['first_name'] ?? $member->profile?->first_name;
+                    $ln = $validated['last_name'] ?? $member->profile?->last_name;
+                    $userData['name'] = trim("{$fn} {$ln}");
+                }
+                if (isset($validated['email'])) {
+                    $userData['email'] = $validated['email'];
+                }
+                if (isset($validated['status'])) {
+                    $userData['status'] = in_array($validated['status'], ['active', 'pending']) ? 'active' : 'suspended';
+                }
+                if (!empty($validated['new_password'])) {
+                    $userData['password'] = Hash::make($validated['new_password']);
+                }
+                if (!empty($userData)) {
+                    $member->user->update($userData);
+                }
+            }
+
+            // Update Member
+            $oldCategory = $member->membership_category_id;
+            $memberData = [];
+            if (isset($validated['membership_category_id'])) {
+                $memberData['membership_category_id'] = $validated['membership_category_id'];
+            }
+            if (isset($validated['status'])) {
+                $memberData['status'] = $validated['status'];
+            }
+            if (isset($validated['valid_until'])) {
+                $memberData['valid_until'] = $validated['valid_until'];
+            }
+            if (isset($validated['joined_at'])) {
+                $memberData['joined_at'] = $validated['joined_at'];
+            }
+            if (!empty($memberData)) {
+                $member->update($memberData);
+            }
+
+            // Update Profile
+            if ($member->profile) {
+                $profileData = array_intersect_key($validated, array_flip([
+                    'first_name', 'last_name', 'phone', 'current_location', 'occupation', 'workplace', 'bio'
+                ]));
+                if (!empty($profileData)) {
+                    $member->profile->update($profileData);
+                }
+            }
+
+            AuditLog::record('member_record_updated', $member, [
+                'member_number' => $member->member_number,
+            ], $request->user());
+
+            // If category changed, trigger upgrade notification email
+            if (isset($validated['membership_category_id']) && $oldCategory != $validated['membership_category_id']) {
+                $newCat = MembershipCategory::find($validated['membership_category_id']);
+                if ($newCat) {
+                    EmailService::sendMemberUpgradedEmail($member, $newCat, 'Registry profile updated by administration.');
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Member details updated successfully.',
+                'member' => $member->fresh(['user', 'category', 'profile']),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to update member: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function destroyMember(Request $request, int $id): JsonResponse
+    {
+        $member = Member::with('user')->findOrFail($id);
+        $memberNumber = $member->member_number;
+        $userName = $member->user?->name ?? 'Member';
+
+        DB::beginTransaction();
+        try {
+            $user = $member->user;
+            $member->delete();
+
+            // Also delete associated member user account if it is not an admin
+            if ($user && $user->role === 'member') {
+                $user->tokens()->delete();
+                $user->delete();
+            }
+
+            AuditLog::record('member_deleted', null, [
+                'member_number' => $memberNumber,
+                'name' => $userName,
+            ], $request->user());
+
+            DB::commit();
+
+            return response()->json([
+                'message' => "Member [{$memberNumber}] ({$userName}) has been permanently deleted from the directory.",
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to delete member: ' . $e->getMessage()], 500);
+        }
     }
 
     public function categories(): JsonResponse
