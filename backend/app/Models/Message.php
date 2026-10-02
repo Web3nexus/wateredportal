@@ -13,6 +13,7 @@ class Message extends Model
 
     protected $fillable = [
         'sender_id',
+        'sending_account_id',
         'subject',
         'body',
         'target_type',
@@ -20,6 +21,11 @@ class Message extends Model
         'target_member_id',
         'priority',
     ];
+
+    public function sendingAccount(): BelongsTo
+    {
+        return $this->belongsTo(SendingEmailAccount::class, 'sending_account_id');
+    }
 
     public function sender(): BelongsTo
     {

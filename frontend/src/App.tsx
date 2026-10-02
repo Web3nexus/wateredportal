@@ -125,6 +125,7 @@ export const App: React.FC = () => {
             <Route path="categories" element={<AdminCategoriesPage />} />
             <Route path="messages" element={<AdminMessagesPage />} />
             <Route path="email-system" element={<AdminSettingsPage initialTab="smtp" />} />
+            <Route path="sending-accounts" element={<AdminSettingsPage initialTab="senders" />} />
             <Route path="twilio-sms" element={<AdminSettingsPage initialTab="sms" />} />
             <Route path="email-templates" element={<AdminEmailTemplatesPage />} />
             <Route path="communications" element={<AdminCommunicationsPage />} />

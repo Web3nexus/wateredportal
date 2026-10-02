@@ -13,14 +13,15 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
+import { SendingAccountsManager } from '../../components/admin/SendingAccountsManager';
 import type { BrandingSettings, SmtpSettings, SmsSettings } from '../../types';
 
 interface AdminSettingsPageProps {
-  initialTab?: 'smtp' | 'sms' | 'branding';
+  initialTab?: 'smtp' | 'senders' | 'sms' | 'branding';
 }
 
 export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab = 'smtp' }) => {
-  const [activeTab, setActiveTab] = useState<'smtp' | 'sms' | 'branding'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'smtp' | 'senders' | 'sms' | 'branding'>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -251,22 +252,34 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200 space-x-4 sm:space-x-8">
+      <div className="flex border-b border-slate-200 space-x-3 sm:space-x-6 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('smtp')}
-          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer ${
+          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'smtp'
               ? 'border-blue-600 text-blue-700'
               : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           <Mail className="w-4 h-4" />
-          <span>Email System (SMTP)</span>
+          <span>General Email (System SMTP)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('senders')}
+          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer whitespace-nowrap ${
+            activeTab === 'senders'
+              ? 'border-indigo-600 text-indigo-700'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Send className="w-4 h-4" />
+          <span>Messaging Senders (Type 2 Engine)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('sms')}
-          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer ${
+          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'sms'
               ? 'border-blue-600 text-blue-700'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -278,7 +291,7 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
 
         <button
           onClick={() => setActiveTab('branding')}
-          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer ${
+          className={`pb-3.5 text-xs sm:text-sm font-semibold flex items-center space-x-2 border-b-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'branding'
               ? 'border-blue-600 text-blue-700'
               : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -289,7 +302,12 @@ export const AdminSettingsPage: React.FC<AdminSettingsPageProps> = ({ initialTab
         </button>
       </div>
 
-      {/* TAB 1: SMTP CONFIGURATION */}
+      {/* TAB: MESSAGING SENDERS (TYPE 2 ENGINE) */}
+      {activeTab === 'senders' && (
+        <SendingAccountsManager />
+      )}
+
+      {/* TAB 1: SMTP CONFIGURATION (GENERAL NOTIFICATIONS ENGINE) */}
       {activeTab === 'smtp' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-sm">

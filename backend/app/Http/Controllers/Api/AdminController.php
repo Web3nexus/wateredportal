@@ -10,7 +10,9 @@ use App\Models\MembershipApplication;
 use App\Models\MembershipCategory;
 use App\Models\Message;
 use App\Models\MessageRecipient;
+use App\Models\SendingEmailAccount;
 use App\Models\User;
+use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,7 +109,7 @@ class AdminController extends Controller
         DB::beginTransaction();
         try {
             $user = User::where('email', $application->email)->first();
-            $defaultPassword = $validated['initial_password'] ?? 'Welcome@MyWater' . date('Y');
+            $defaultPassword = $validated['initial_password'] ?? 'Welcome@Watered' . date('Y');
 
             if (!$user) {
                 $user = User::create([
@@ -123,13 +125,13 @@ class AdminController extends Controller
 
             $lastMember = Member::orderBy('id', 'desc')->first();
             $nextSequence = $lastMember ? ($lastMember->id + 100) : 100;
-            $memberNumber = 'MW-' . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
+            $memberNumber = 'W-' . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
 
             $member = Member::create([
                 'user_id' => $user->id,
                 'membership_category_id' => $application->membership_category_id,
                 'member_number' => $memberNumber,
-                'secure_qr_id' => 'sec_mw_' . Str::random(32),
+                'secure_qr_id' => 'sec_w_' . Str::random(32),
                 'status' => 'active',
                 'joined_at' => now(),
                 'valid_until' => now()->addYears(2),
@@ -159,8 +161,8 @@ class AdminController extends Controller
 
             $welcomeMsg = Message::create([
                 'sender_id' => $admin->id,
-                'subject' => 'Official Admission into MyWater Register',
-                'body' => "Greetings {$application->first_name},\n\nYour application ({$application->application_number}) has been approved by the Administration Council.\n\nYou have been issued Member ID: {$memberNumber}.\nYour Digital Membership Card and encrypted portal access are now activated.\n\nWelcome to MyWater.",
+                'subject' => 'Official Admission into Watered Register',
+                'body' => "Greetings {$application->first_name},\n\nYour application ({$application->application_number}) has been approved by the Administration Council.\n\nYou have been issued Member ID: {$memberNumber}.\nYour Digital Membership Card and verified portal access are now activated.\n\nWelcome to Watered.",
                 'target_type' => 'individual',
                 'target_member_id' => $member->id,
                 'priority' => 'high',
@@ -179,6 +181,9 @@ class AdminController extends Controller
             ], $admin);
 
             DB::commit();
+
+            // Dispatch official admission approval email to member with credentials
+            EmailService::sendApplicationApprovedEmail($application, $member, $user, $defaultPassword);
 
             return response()->json([
                 'message' => 'Applicant successfully admitted and member credential issued.',
@@ -354,8 +359,16 @@ class AdminController extends Controller
             'reason' => $validated['reason'] ?? null,
         ], $request->user());
 
+        // Dispatch membership tier upgrade notification email
+        if ($oldCategory != $validated['membership_category_id']) {
+            $newCategory = MembershipCategory::find($validated['membership_category_id']);
+            if ($newCategory) {
+                EmailService::sendMemberUpgradedEmail($member, $newCategory, $validated['reason'] ?? null);
+            }
+        }
+
         return response()->json([
-            'message' => 'Member category reassigned.',
+            'message' => 'Member category reassigned and upgrade notification sent.',
             'member' => $member->load('category', 'profile'),
         ]);
     }
@@ -464,9 +477,20 @@ class AdminController extends Controller
             'membership_category_id' => ['nullable', 'required_if:target_type,category', 'exists:membership_categories,id'],
             'target_member_id' => ['nullable', 'required_if:target_type,individual', 'exists:members,id'],
             'priority' => ['nullable', 'in:normal,high,urgent'],
+            'sending_account_id' => ['nullable', 'exists:sending_email_accounts,id'],
+            'send_email' => ['nullable', 'boolean'],
         ]);
 
         $admin = $request->user();
+
+        // Resolve sending email account (Type 2 Engine)
+        $sendingAccount = null;
+        if (!empty($validated['sending_account_id'])) {
+            $sendingAccount = SendingEmailAccount::find($validated['sending_account_id']);
+        } else {
+            $sendingAccount = SendingEmailAccount::where('is_default', true)->first() 
+                ?: SendingEmailAccount::where('is_active', true)->first();
+        }
 
         $query = Member::where('status', 'active');
         if ($validated['target_type'] === 'category') {
@@ -475,7 +499,7 @@ class AdminController extends Controller
             $query->where('id', $validated['target_member_id']);
         }
 
-        $members = $query->get(['id']);
+        $members = $query->with(['user:id,name,email', 'profile'])->get();
 
         if ($members->isEmpty()) {
             return response()->json([
@@ -487,6 +511,7 @@ class AdminController extends Controller
         try {
             $message = Message::create([
                 'sender_id' => $admin->id,
+                'sending_account_id' => $sendingAccount?->id,
                 'subject' => $validated['subject'],
                 'body' => $validated['body'],
                 'target_type' => $validated['target_type'],
@@ -516,14 +541,28 @@ class AdminController extends Controller
                 'subject' => $message->subject,
                 'target_type' => $message->target_type,
                 'recipient_count' => count($recipientsData),
+                'sending_account' => $sendingAccount?->name ?? 'Default Notification Gateway',
             ], $admin);
 
             DB::commit();
 
+            // Dispatch outbound emails to member inboxes if requested (default true)
+            $shouldSendEmail = $request->boolean('send_email', true);
+            if ($shouldSendEmail) {
+                foreach ($members as $member) {
+                    EmailService::sendMessageNotification($member, $message, $sendingAccount);
+                }
+            }
+
             return response()->json([
-                'message' => 'Message successfully dispatched to ' . count($recipientsData) . ' member inbox(es).',
+                'message' => 'Message successfully dispatched to ' . count($recipientsData) . ' member inbox(es)' . ($shouldSendEmail ? ' and emailed via ' . ($sendingAccount?->name ?? 'system mailer') : '') . '.',
                 'message_id' => $message->id,
                 'recipient_count' => count($recipientsData),
+                'sending_account' => $sendingAccount ? [
+                    'id' => $sendingAccount->id,
+                    'name' => $sendingAccount->name,
+                    'from_email' => $sendingAccount->from_email,
+                ] : null,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -533,7 +572,7 @@ class AdminController extends Controller
 
     public function messages(): JsonResponse
     {
-        $messages = Message::with(['category', 'targetMember.profile'])
+        $messages = Message::with(['category', 'targetMember.profile', 'sendingAccount', 'sender:id,name'])
             ->withCount([
                 'recipients',
                 'recipients as read_count' => function ($q) {

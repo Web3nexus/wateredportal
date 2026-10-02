@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -47,6 +48,9 @@ class AuthController extends Controller
         $token = $user->createToken('portal_auth_token')->plainTextToken;
 
         AuditLog::record('user_login', $user, ['email' => $user->email], $user);
+
+        // Dispatch security notification email for login detection
+        EmailService::sendLoginAlertEmail($user, $request);
 
         $user->load(['member.category', 'member.profile']);
 

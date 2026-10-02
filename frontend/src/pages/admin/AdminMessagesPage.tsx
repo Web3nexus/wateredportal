@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
-import { Message, MembershipCategory, Member } from '../../types';
+import { Message, MembershipCategory, Member, SendingEmailAccount } from '../../types';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
@@ -11,12 +12,17 @@ import {
   CheckCircle,
   Users,
   Eye,
+  Server,
+  ExternalLink,
 } from 'lucide-react';
 
 export const AdminMessagesPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [categories, setCategories] = useState<MembershipCategory[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [sendingAccounts, setSendingAccounts] = useState<SendingEmailAccount[]>([]);
+  const [selectedSendingAccountId, setSelectedSendingAccountId] = useState<number | undefined>(undefined);
+  const [sendOutboundEmail, setSendOutboundEmail] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form State
@@ -59,6 +65,13 @@ export const AdminMessagesPage: React.FC = () => {
       setMembers(res.members.data);
       if (res.members.data.length > 0) setSelectedMemberId(res.members.data[0].id);
     });
+    adminService.getSendingAccounts({ active_only: true }).then((res) => {
+      setSendingAccounts(res.accounts);
+      const defaultAcc = res.accounts.find((a) => a.is_default) || res.accounts[0];
+      if (defaultAcc) {
+        setSelectedSendingAccountId(defaultAcc.id);
+      }
+    });
   }, []);
 
   const handlePreviewRecipients = async () => {
@@ -94,16 +107,18 @@ export const AdminMessagesPage: React.FC = () => {
     setSendSuccess(null);
 
     try {
-      await adminService.sendMessage({
+      const res = await adminService.sendMessage({
         subject,
         body,
         priority,
         target_type: targetType,
         membership_category_id: targetType === 'category' ? selectedCategoryId : undefined,
         target_member_id: targetType === 'individual' ? selectedMemberId : undefined,
+        sending_account_id: selectedSendingAccountId,
+        send_email: sendOutboundEmail,
       });
 
-      setSendSuccess(`Broadcast transmitted successfully to ${previewCount ?? 'all'} verified members.`);
+      setSendSuccess(res.message || `Broadcast transmitted successfully to ${previewCount ?? 'all'} verified members.`);
       setSubject('');
       setBody('');
       loadData();
@@ -226,6 +241,52 @@ export const AdminMessagesPage: React.FC = () => {
               </div>
             )}
 
+            {/* Outbound Sender Email Account (Type 2 Engine) */}
+            <div className="p-3.5 bg-slate-50/90 border border-slate-200/90 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-800 flex items-center space-x-1.5">
+                  <Server className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Outbound Sending Mailer (Engine Type 2)</span>
+                </label>
+                <Link
+                  to="/admin/sending-accounts"
+                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 inline-flex items-center"
+                >
+                  Manage Senders <ExternalLink className="w-3 h-3 ml-1" />
+                </Link>
+              </div>
+
+              {sendingAccounts.length > 0 ? (
+                <select
+                  value={selectedSendingAccountId}
+                  onChange={(e) => setSelectedSendingAccountId(Number(e.target.value))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 font-medium"
+                >
+                  {sendingAccounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} — {acc.from_name} &lt;{acc.from_email}&gt; {acc.is_default ? '★ (Default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                  No dedicated sending accounts found. System general notification relay will be used.
+                </p>
+              )}
+
+              <label className="inline-flex items-center space-x-2 pt-0.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendOutboundEmail}
+                  onChange={(e) => setSendOutboundEmail(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-xs font-medium text-slate-700">
+                  Dispatch email notifications directly to member personal email inboxes
+                </span>
+              </label>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Announcement Subject *
@@ -336,6 +397,7 @@ export const AdminMessagesPage: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] uppercase font-semibold text-slate-500 tracking-wider">
                   <th className="py-3 px-4">Subject</th>
                   <th className="py-3 px-4">Priority</th>
+                  <th className="py-3 px-4">Sender Mailer</th>
                   <th className="py-3 px-4">Audience</th>
                   <th className="py-3 px-4">Dispatched At</th>
                   <th className="py-3 px-4 text-right">View</th>
@@ -359,6 +421,11 @@ export const AdminMessagesPage: React.FC = () => {
                       >
                         {msg.priority.toUpperCase()}
                       </Badge>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {msg.sending_account?.name || 'General Gateway'}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
                       {msg.target_type === 'all'
@@ -398,7 +465,7 @@ export const AdminMessagesPage: React.FC = () => {
           maxWidth="md"
         >
           <div className="space-y-4 text-xs font-sans">
-            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-semibold">Priority</span>
                 <span className="font-semibold text-slate-800 uppercase">{viewingMessage.priority}</span>
@@ -406,6 +473,12 @@ export const AdminMessagesPage: React.FC = () => {
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-semibold">Audience</span>
                 <span className="font-semibold text-slate-800 capitalize">{viewingMessage.target_type}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Sender Profile</span>
+                <span className="font-semibold text-indigo-700 truncate block text-[11px]" title={viewingMessage.sending_account?.name || 'General Relay'}>
+                  {viewingMessage.sending_account?.name || 'General Relay'}
+                </span>
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import {
   MembershipCategory,
   Member,
   Message,
+  SendingEmailAccount,
 } from '../types';
 
 export const adminService = {
@@ -145,12 +146,60 @@ export const adminService = {
     membership_category_id?: number;
     target_member_id?: number;
     priority?: 'normal' | 'high' | 'urgent';
+    sending_account_id?: number;
+    send_email?: boolean;
   }): Promise<{
     message: string;
     message_id: number;
     recipient_count: number;
+    sending_account?: { id: number; name: string; from_email: string } | null;
   }> {
     return api.post('/admin/messages', data);
+  },
+
+  async getSendingAccounts(params: { active_only?: boolean } = {}): Promise<{
+    accounts: SendingEmailAccount[];
+  }> {
+    const q = new URLSearchParams();
+    if (params.active_only) q.append('active_only', '1');
+    return api.get(`/admin/sending-accounts?${q.toString()}`);
+  },
+
+  async getSendingAccount(id: number): Promise<{ account: SendingEmailAccount }> {
+    return api.get(`/admin/sending-accounts/${id}`);
+  },
+
+  async createSendingAccount(data: Partial<SendingEmailAccount>): Promise<{
+    message: string;
+    account: SendingEmailAccount;
+  }> {
+    return api.post('/admin/sending-accounts', data);
+  },
+
+  async updateSendingAccount(id: number, data: Partial<SendingEmailAccount>): Promise<{
+    message: string;
+    account: SendingEmailAccount;
+  }> {
+    return api.patch(`/admin/sending-accounts/${id}`, data);
+  },
+
+  async deleteSendingAccount(id: number): Promise<{ message: string }> {
+    return api.delete(`/admin/sending-accounts/${id}`);
+  },
+
+  async setDefaultSendingAccount(id: number): Promise<{
+    message: string;
+    account: SendingEmailAccount;
+  }> {
+    return api.post(`/admin/sending-accounts/${id}/default`);
+  },
+
+  async testSendingAccount(id: number, recipient_email: string): Promise<{
+    success: boolean;
+    message: string;
+    log_id?: number;
+  }> {
+    return api.post(`/admin/sending-accounts/${id}/test`, { recipient_email });
   },
 
   async getMessages(page = 1): Promise<{

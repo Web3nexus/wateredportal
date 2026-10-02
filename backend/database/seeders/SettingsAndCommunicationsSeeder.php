@@ -222,13 +222,77 @@ class SettingsAndCommunicationsSeeder extends Seeder
                 'variables' => ['first_name', 'subject', 'message_body', 'portal_url'],
                 'is_active' => true,
             ],
+            [
+                'code' => 'member_login_alert',
+                'name' => 'Member Login Security Alert',
+                'subject' => 'Watered Portal — Security Notice: Sign-in Alert',
+                'body' => "Greetings {{name}},\n\nThis is an automated security notice to confirm that your Watered Portal account was signed into.\n\nSign-in details:\n• Date & Time: {{timestamp}}\n• IP Address: {{ip_address}}\n• Client / Device: {{user_agent}}\n\nIf this was you, you can disregard this notice.\nIf you did not authorize this session, please contact Watered Administration immediately.\n\nWatered Security Team\n{{parent_website_url}}",
+                'variables' => ['name', 'email', 'timestamp', 'ip_address', 'user_agent', 'portal_url', 'site_name'],
+                'is_active' => true,
+            ],
+            [
+                'code' => 'membership_upgraded',
+                'name' => 'Membership Tier Upgrade Notice',
+                'subject' => 'Watered Notice: Membership Upgraded to {{category_name}} Tier',
+                'body' => "Greetings {{first_name}},\n\nWe are pleased to inform you that your Watered membership standing has been officially upgraded to {{category_name}} standing.\n\nYour verified digital pass and membership privileges have been refreshed across the register.\n{{reason_section}}\nView your updated executive card at:\n{{portal_url}}/dashboard\n\nWatered Administration Council",
+                'variables' => ['first_name', 'member_number', 'category_name', 'reason_section', 'portal_url', 'site_name'],
+                'is_active' => true,
+            ],
         ];
 
         foreach ($defaultTemplates as $t) {
-            \App\Models\EmailTemplate::firstOrCreate(
+            \App\Models\EmailTemplate::updateOrCreate(
                 ['code' => $t['code']],
                 $t
             );
+        }
+
+        // 6. Default Sending Email Accounts (Type 2 Engine: Multiple Senders for Messaging)
+        if (\App\Models\SendingEmailAccount::count() === 0) {
+            \App\Models\SendingEmailAccount::create([
+                'name' => 'Watered Executive Secretariat',
+                'from_name' => 'Watered Executive Office',
+                'from_email' => 'executive@mywatered.com',
+                'reply_to_email' => 'contact@mywatered.com',
+                'smtp_host' => '127.0.0.1',
+                'smtp_port' => 1025,
+                'smtp_username' => null,
+                'smtp_password' => null,
+                'smtp_encryption' => 'none',
+                'is_default' => true,
+                'is_active' => true,
+                'description' => 'Primary outbound mailer for presidential orders, official decrees, and executive communiqués.',
+            ]);
+
+            \App\Models\SendingEmailAccount::create([
+                'name' => 'Member Relations & Engagement',
+                'from_name' => 'Watered Member Services',
+                'from_email' => 'members@mywatered.com',
+                'reply_to_email' => 'support@mywatered.com',
+                'smtp_host' => '127.0.0.1',
+                'smtp_port' => 1025,
+                'smtp_username' => null,
+                'smtp_password' => null,
+                'smtp_encryption' => 'none',
+                'is_default' => false,
+                'is_active' => true,
+                'description' => 'Dedicated sender account for general member engagement, benefits notices, and community bulletins.',
+            ]);
+
+            \App\Models\SendingEmailAccount::create([
+                'name' => 'Events & Council Dispatch',
+                'from_name' => 'Watered Events Council',
+                'from_email' => 'events@mywatered.com',
+                'reply_to_email' => 'events@mywatered.com',
+                'smtp_host' => '127.0.0.1',
+                'smtp_port' => 1025,
+                'smtp_username' => null,
+                'smtp_password' => null,
+                'smtp_encryption' => 'none',
+                'is_default' => false,
+                'is_active' => true,
+                'description' => 'Used exclusively for gathering alerts, global summits, and symposium announcements.',
+            ]);
         }
     }
 }

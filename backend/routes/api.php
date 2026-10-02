@@ -87,6 +87,15 @@ Route::middleware(['auth:sanctum', EnsureAdmin::class])->prefix('admin')->group(
     Route::post('/settings/test-smtp', [SettingsController::class, 'testSmtp']);
     Route::post('/settings/test-sms', [SettingsController::class, 'testSms']);
 
+    // Sending Accounts Management (Type 2 Engine: Multiple Mail Accounts for Messaging)
+    Route::get('/sending-accounts', [\App\Http\Controllers\Api\SendingAccountController::class, 'index']);
+    Route::post('/sending-accounts', [\App\Http\Controllers\Api\SendingAccountController::class, 'store']);
+    Route::get('/sending-accounts/{id}', [\App\Http\Controllers\Api\SendingAccountController::class, 'show']);
+    Route::patch('/sending-accounts/{id}', [\App\Http\Controllers\Api\SendingAccountController::class, 'update']);
+    Route::delete('/sending-accounts/{id}', [\App\Http\Controllers\Api\SendingAccountController::class, 'destroy']);
+    Route::post('/sending-accounts/{id}/default', [\App\Http\Controllers\Api\SendingAccountController::class, 'setDefault']);
+    Route::post('/sending-accounts/{id}/test', [\App\Http\Controllers\Api\SendingAccountController::class, 'test']);
+
     // Email Templates Management
     Route::get('/templates', [\App\Http\Controllers\Api\EmailTemplateController::class, 'index']);
     Route::get('/templates/{id}', [\App\Http\Controllers\Api\EmailTemplateController::class, 'show']);

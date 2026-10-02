@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Member;
 use App\Models\MembershipApplication;
 use App\Models\MembershipCategory;
+use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -82,8 +83,11 @@ class PublicController extends Controller
             'created_at' => now(),
         ]);
 
+        // Dispatch notification email to applicant confirming receipt and waiting for approval
+        EmailService::sendSignupPendingApprovalEmail($application);
+
         return response()->json([
-            'message' => 'Your membership application has been received into the MyWater register.',
+            'message' => 'Your membership application has been received into the Watered register and is awaiting approval.',
             'application' => [
                 'application_number' => $application->application_number,
                 'status' => $application->status,

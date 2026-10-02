@@ -46,11 +46,12 @@ export const AdminLayout: React.FC = () => {
     {
       title: 'Communications & Gateways',
       items: [
-        { label: 'Email System (SMTP)', to: '/admin/email-system', icon: Mail },
+        { label: 'General Email (SMTP)', to: '/admin/email-system', icon: Mail },
+        { label: 'Sending Accounts (Senders)', to: '/admin/sending-accounts', icon: Send },
+        { label: 'Broadcast Messages', to: '/admin/messages', icon: Send },
         { label: 'Twilio SMS Gateway', to: '/admin/twilio-sms', icon: Smartphone },
         { label: 'Email Templates', to: '/admin/email-templates', icon: FileCode2 },
         { label: 'Tracking & Telemetry', to: '/admin/communications', icon: BarChart3 },
-        { label: 'Broadcast Messages', to: '/admin/messages', icon: Send },
       ],
     },
     {

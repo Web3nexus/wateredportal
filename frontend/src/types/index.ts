@@ -96,10 +96,30 @@ export interface MembershipApplication {
   category?: MembershipCategory;
 }
 
+export interface SendingEmailAccount {
+  id: number;
+  name: string;
+  from_name: string;
+  from_email: string;
+  reply_to_email?: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username?: string;
+  smtp_password?: string;
+  smtp_encryption: 'tls' | 'ssl' | 'none';
+  is_default: boolean;
+  is_active: boolean;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Message {
   id: number;
   sender_id: number;
   sender?: { id: number; name: string };
+  sending_account_id?: number;
+  sending_account?: SendingEmailAccount;
   subject: string;
   body: string;
   target_type: TargetType;
