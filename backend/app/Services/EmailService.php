@@ -195,6 +195,7 @@ HTML;
             $mailer->html($html, function ($message) use ($recipientEmail, $recipientName, $subject, $config) {
                 $message->to($recipientEmail, $recipientName)
                     ->from($config['from_address'], $config['from_name'])
+                    ->returnPath($config['from_address'])
                     ->subject($subject);
             });
 
@@ -247,6 +248,7 @@ HTML;
             $mailer->html($html, function ($message) use ($account, $recipientEmail, $recipientName, $subject) {
                 $message->to($recipientEmail, $recipientName)
                     ->from($account->from_email, $account->from_name)
+                    ->returnPath($account->from_email)
                     ->subject($subject);
 
                 if (!empty($account->reply_to_email)) {
