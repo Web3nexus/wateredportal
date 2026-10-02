@@ -302,9 +302,14 @@ HTML;
                 ],
             ]);
 
+            $errorMsg = $e->getMessage();
+            if (str_contains($errorMsg, '535') || str_contains($errorMsg, 'Incorrect authentication data')) {
+                $errorMsg .= " — Server rejected credentials for '{$username}'. Check: 1) Verify this exact email account exists in your mail server / cPanel; 2) If the password contains special characters (#, $, \", !), ensure it is enclosed in double quotes in .env (e.g. MAIL_PASSWORD=\"...\"); 3) Re-type the password in the Settings form and click 'Save Changes' to update any stored database value.";
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send test email: ' . $e->getMessage(),
+                'message' => 'Failed to send test email: ' . $errorMsg,
             ], 422);
         }
     }
