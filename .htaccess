@@ -1,0 +1,43 @@
+# ==============================================================================
+# Watered Portal - Root Directory Server Configuration (cPanel / Apache)
+# ==============================================================================
+# This file routes requests to backend/public while securing sensitive code directories.
+
+<IfModule mod_negotiation.c>
+    Options -MultiViews -Indexes
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # --------------------------------------------------------------------------
+    # Security: Block Direct Access to Sensitive Files and Directories
+    # --------------------------------------------------------------------------
+    RewriteRule ^(\.git|\.env|composer\.(json|lock)|package(-lock)?\.json|prompt\.md|README\.md) - [F,L]
+    RewriteRule ^backend/(app|bootstrap|config|database|resources|routes|storage|tests|vendor) - [F,L]
+    RewriteRule ^frontend/(src|node_modules|public) - [F,L]
+
+    # --------------------------------------------------------------------------
+    # Preserve Authorization Headers
+    # --------------------------------------------------------------------------
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    <IfModule mod_setenvif.c>
+        SetEnvIfNoCase ^Authorization$ "(.+)" HTTP_AUTHORIZATION=$1
+    </IfModule>
+
+    # --------------------------------------------------------------------------
+    # Rewrite All Traffic to backend/public/
+    # --------------------------------------------------------------------------
+    RewriteCond %{REQUEST_URI} !^/backend/public/
+    RewriteRule ^(.*)$ backend/public/$1 [L,QSA]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
