@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { AlertCircle, ShieldCheck, KeyRound, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
+import { AlertCircle, ShieldCheck, KeyRound, ArrowRight, ExternalLink } from 'lucide-react';
 
 export const SecureGatePage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -37,16 +37,9 @@ export const SecureGatePage: React.FC = () => {
     }
   };
 
-  const setDemoAdmin = () => {
-    setEmail('admin@mywatered.com');
-    setPassword('password');
-    setPasscode('WG-2026-ADMIN');
-    setError(null);
-  };
-
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 bg-slate-50/60 min-h-[calc(100vh-4rem)]">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 sm:py-20 bg-slate-50/60 min-h-[calc(100vh-4rem)]">
+      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-8 sm:p-9 shadow-xl shadow-slate-200/50 relative overflow-hidden">
         {/* Top Accent Gradient Bar */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500" />
 
@@ -55,12 +48,12 @@ export const SecureGatePage: React.FC = () => {
             <ShieldCheck className="w-7 h-7 text-blue-600" />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 bg-blue-50/80 border border-blue-200/60 rounded-full text-[11px] font-semibold tracking-wide text-blue-700">
-            Secure Gate • Admin Access
+            Secure Gate &bull; Admin Access
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Watered Admin Portal
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Restricted authentication gate for portal administrators
           </p>
         </div>
@@ -103,7 +96,7 @@ export const SecureGatePage: React.FC = () => {
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 placeholder="WG-2026-ADMIN"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-400"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-400"
               />
               <KeyRound className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
             </div>
@@ -116,31 +109,8 @@ export const SecureGatePage: React.FC = () => {
           </div>
         </form>
 
-        {/* Demo Credentials Quick Fill */}
-        <div className="mt-8 pt-6 border-t border-slate-100">
-          <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
-            Demo Administrator Quick-Access
-          </span>
-          <button
-            type="button"
-            onClick={setDemoAdmin}
-            className="w-full p-3 bg-slate-50/80 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-200 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between group"
-          >
-            <div>
-              <div className="font-semibold text-xs text-slate-900 group-hover:text-blue-700 transition-colors flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                Watered System Administrator
-              </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5">admin@mywatered.com</div>
-            </div>
-            <span className="text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md group-hover:bg-blue-600 group-hover:text-white transition-all">
-              Autofill
-            </span>
-          </button>
-        </div>
-
         {/* Footnotes */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <span>Standard Member?</span>
           <Link
             to="/login"
@@ -150,7 +120,7 @@ export const SecureGatePage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="mt-3 text-center">
+        <div className="mt-4 text-center">
           <a
             href="http://mywatered.com/"
             target="_blank"
