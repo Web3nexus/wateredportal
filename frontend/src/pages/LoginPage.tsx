@@ -82,7 +82,7 @@ export const LoginPage: React.FC = () => {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="member@mywater.com"
+            placeholder="member@mail.com"
             autoComplete="email"
           />
 
@@ -109,7 +109,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+        <div className="mt-8 pt-6 border-t border-slate-100">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Not a member yet?</span>
             <Link
@@ -117,16 +117,6 @@ export const LoginPage: React.FC = () => {
               className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
             >
               Apply for membership <ArrowRight className="w-3.5 h-3.5 ml-1" />
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-50">
-            <span>Administrator?</span>
-            <Link
-              to="/securegate"
-              className="inline-flex items-center text-slate-600 hover:text-slate-900 font-medium transition-colors"
-            >
-              Admin Secure Gate &rarr;
             </Link>
           </div>
         </div>
@@ -138,7 +128,7 @@ export const LoginPage: React.FC = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center text-[11px] text-slate-400 hover:text-indigo-600 transition-colors"
           >
-            Visit parent organization <ExternalLink className="w-3 h-3 ml-1" />
+            Visit Watered Website <ExternalLink className="w-3 h-3 ml-1" />
           </a>
         </div>
       </div>

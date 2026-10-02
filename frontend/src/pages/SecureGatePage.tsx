@@ -44,8 +44,8 @@ export const SecureGatePage: React.FC = () => {
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500" />
 
         <div className="text-center mb-8 pt-2">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-slate-200/80 items-center justify-center p-2 mb-3 shadow-sm ring-1 ring-slate-100">
-            <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 items-center justify-center text-blue-600 font-bold text-xl mb-4 shadow-sm">
+            <ShieldCheck className="w-7 h-7 text-blue-600" />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 bg-blue-50/80 border border-blue-200/60 rounded-full text-[11px] font-semibold tracking-wide text-blue-700">
             Secure Gate &bull; Admin Access

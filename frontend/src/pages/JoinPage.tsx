@@ -240,8 +240,8 @@ export const JoinPage: React.FC = () => {
         {/* Header */}
         <div className="mb-8 pt-2">
           <div className="text-center mb-6">
-            <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-slate-200/80 items-center justify-center p-2 mb-3 shadow-sm ring-1 ring-slate-100">
-              <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
+            <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-800 items-center justify-center text-white font-bold text-xl mb-3 shadow-md ring-1 ring-white/10">
+              W
             </div>
             <div className="block">
               <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 border border-indigo-100 text-indigo-700 mb-1.5">

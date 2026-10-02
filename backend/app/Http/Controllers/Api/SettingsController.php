@@ -27,10 +27,10 @@ class SettingsController extends Controller
         return response()->json([
             'site_name' => Setting::get('site_name', 'Watered'),
             'parent_website_url' => Setting::get('parent_website_url', 'http://mywatered.com/'),
-            'site_logo_url' => Setting::get('site_logo_url', '/logo.png'),
-            'favicon_url' => Setting::get('favicon_url', '/favicon.png'),
-            'email_logo_url' => Setting::get('email_logo_url', 'https://mywatered.com/storage/branding/01KJ3MR632X6G81H47JKAPWV3S.png?v=1790955583'),
-            'primary_color' => Setting::get('primary_color', '#0284c7'),
+            'site_logo_url' => Setting::get('site_logo_url', ''),
+            'favicon_url' => Setting::get('favicon_url', ''),
+            'email_logo_url' => Setting::get('email_logo_url', ''),
+            'primary_color' => Setting::get('primary_color', '#966922'),
         ]);
     }
 
@@ -45,10 +45,10 @@ class SettingsController extends Controller
             'branding' => [
                 'site_name' => 'Watered',
                 'parent_website_url' => 'http://mywatered.com/',
-                'site_logo_url' => '/logo.png',
-                'favicon_url' => '/favicon.png',
-                'email_logo_url' => 'https://mywatered.com/storage/branding/01KJ3MR632X6G81H47JKAPWV3S.png?v=1790955583',
-                'primary_color' => '#0284c7',
+                'site_logo_url' => '',
+                'favicon_url' => '',
+                'email_logo_url' => '',
+                'primary_color' => '#966922',
             ],
             'smtp' => [
                 'smtp_host' => config('mail.mailers.smtp.host', '127.0.0.1'),

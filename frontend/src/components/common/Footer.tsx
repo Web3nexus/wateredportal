@@ -8,11 +8,9 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-100">
           <div className="flex items-center space-x-3">
-            <img
-              src="/logo.png"
-              alt="Watered"
-              className="w-8 h-8 object-contain"
-            />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-slate-900 to-indigo-950 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+              W
+            </div>
             <div>
               <span className="font-bold text-slate-900 block text-sm">
                 Watered
@@ -39,13 +37,6 @@ export const Footer: React.FC = () => {
               <span>mywatered.com</span>
               <ExternalLink className="w-3 h-3 opacity-60" />
             </a>
-            <Link
-              to="/securegate"
-              className="text-slate-400 hover:text-slate-600 transition-colors flex items-center space-x-1 font-mono text-[11px]"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Admin Gate</span>
-            </Link>
           </div>
         </div>
 

@@ -19,10 +19,10 @@ class SettingsAndCommunicationsSeeder extends Seeder
             // Branding
             ['key' => 'site_name', 'value' => 'Watered', 'group' => 'branding', 'is_secret' => false],
             ['key' => 'parent_website_url', 'value' => 'http://mywatered.com/', 'group' => 'branding', 'is_secret' => false],
-            ['key' => 'site_logo_url', 'value' => 'https://mywatered.com/storage/branding/01KJ3MR632X6G81H47JKAPWV3S.png?v=1790955583', 'group' => 'branding', 'is_secret' => false],
-            ['key' => 'favicon_url', 'value' => 'https://mywatered.com/storage/branding/01KJ3MR632X6G81H47JKAPWV3S.png?v=1790955583', 'group' => 'branding', 'is_secret' => false],
-            ['key' => 'email_logo_url', 'value' => 'https://mywatered.com/storage/branding/01KJ3MR632X6G81H47JKAPWV3S.png?v=1790955583', 'group' => 'branding', 'is_secret' => false],
-            ['key' => 'primary_color', 'value' => '#0284c7', 'group' => 'branding', 'is_secret' => false],
+            ['key' => 'site_logo_url', 'value' => '', 'group' => 'branding', 'is_secret' => false],
+            ['key' => 'favicon_url', 'value' => '', 'group' => 'branding', 'is_secret' => false],
+            ['key' => 'email_logo_url', 'value' => '', 'group' => 'branding', 'is_secret' => false],
+            ['key' => 'primary_color', 'value' => '#966922', 'group' => 'branding', 'is_secret' => false],
 
             // SMTP
             ['key' => 'smtp_host', 'value' => '127.0.0.1', 'group' => 'smtp', 'is_secret' => false],
