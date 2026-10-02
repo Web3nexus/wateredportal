@@ -190,14 +190,42 @@ export const DashboardPage: React.FC = () => {
               </Link>
             </div>
 
-            {card && <DigitalCard card={card} showActions={true} />}
-
-            <div className="mt-5 p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl space-y-1.5 text-xs text-slate-600">
-              <span className="font-semibold text-slate-900 block">Check-in Instructions:</span>
-              <p className="text-[11px] leading-relaxed text-slate-500">
-                Display this scannable QR pass at the entrance of authorized Watered gatherings or affiliated facilities for instant credentials verification.
-              </p>
-            </div>
+            {card ? (
+              <>
+                <DigitalCard card={card} showActions={true} />
+                <div className="mt-5 p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl space-y-1.5 text-xs text-slate-600">
+                  <span className="font-semibold text-slate-900 block">Check-in Instructions:</span>
+                  <p className="text-[11px] leading-relaxed text-slate-500">
+                    Display this scannable QR pass at the entrance of authorized Watered gatherings or affiliated facilities for instant credentials verification.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="py-10 px-4 rounded-xl bg-slate-50 border border-slate-200/80 text-center space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-slate-900">
+                    {user?.role === 'admin' ? 'Administrator Account' : 'No Digital Pass Assigned'}
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    {user?.role === 'admin'
+                      ? 'You are signed in as an administrator. Member credentials are only assigned to active member accounts.'
+                      : 'Your membership application is currently being processed. Your pass will appear here once approved.'}
+                  </p>
+                </div>
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-xs"
+                  >
+                    <span>Go to Admin Portal</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

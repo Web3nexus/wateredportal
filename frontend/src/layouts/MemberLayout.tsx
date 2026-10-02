@@ -11,10 +11,11 @@ import {
   ExternalLink,
   Menu,
   X,
+  Shield,
 } from 'lucide-react';
 
 export const MemberLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -95,6 +96,16 @@ export const MemberLayout: React.FC = () => {
 
             {/* User Profile & Actions */}
             <div className="flex items-center space-x-3">
+              {isAdmin && (
+                <NavLink
+                  to="/admin"
+                  className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin Portal</span>
+                </NavLink>
+              )}
+
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-xs font-semibold text-slate-900">
                   {user?.name || 'Member'}
@@ -132,6 +143,17 @@ export const MemberLayout: React.FC = () => {
               <p className="text-xs font-semibold text-slate-900">{user?.name || 'Member'}</p>
               <p className="text-[11px] text-slate-500">{user?.email}</p>
             </div>
+
+            {isAdmin && (
+              <NavLink
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-2"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin Portal</span>
+              </NavLink>
+            )}
 
             {navItems.map((item) => {
               const Icon = item.icon;
