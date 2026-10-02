@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { AlertCircle, ShieldCheck, KeyRound, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
+import { AlertCircle, ShieldCheck, KeyRound, ArrowRight, ExternalLink } from 'lucide-react';
 
 export const SecureGatePage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -35,13 +35,6 @@ export const SecureGatePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const setDemoAdmin = () => {
-    setEmail('admin@mywatered.com');
-    setPassword('password');
-    setPasscode('WG-2026-ADMIN');
-    setError(null);
   };
 
   return (
@@ -116,31 +109,8 @@ export const SecureGatePage: React.FC = () => {
           </div>
         </form>
 
-        {/* Demo Credentials Quick Fill */}
-        <div className="mt-8 pt-6 border-t border-slate-100">
-          <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
-            Demo Administrator Quick-Access
-          </span>
-          <button
-            type="button"
-            onClick={setDemoAdmin}
-            className="w-full p-3 bg-slate-50/80 hover:bg-blue-50/60 border border-slate-200 hover:border-blue-200 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between group"
-          >
-            <div>
-              <div className="font-semibold text-xs text-slate-900 group-hover:text-blue-700 transition-colors flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                Watered System Administrator
-              </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5">admin@mywatered.com</div>
-            </div>
-            <span className="text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md group-hover:bg-blue-600 group-hover:text-white transition-all">
-              Autofill
-            </span>
-          </button>
-        </div>
-
         {/* Footnotes */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <span>Standard Member?</span>
           <Link
             to="/login"
