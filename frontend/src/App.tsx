@@ -8,7 +8,6 @@ import { MemberLayout } from './layouts/MemberLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 
 // Public Pages
-import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { SecureGatePage } from './pages/SecureGatePage';
 import { JoinPage } from './pages/JoinPage';
@@ -88,7 +87,7 @@ export const App: React.FC = () => {
         <Routes>
           {/* Public Routes with MainLayout */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/securegate" element={<SecureGatePage />} />
             <Route path="/join" element={<JoinPage />} />
