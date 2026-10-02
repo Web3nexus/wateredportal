@@ -70,8 +70,8 @@ export const AdminLayout: React.FC = () => {
         {/* Brand Header */}
         <div className="h-18 px-6 flex items-center justify-between border-b border-slate-100 bg-white">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/20">
-              W
+            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-center p-1.5 shadow-xs">
+              <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -244,8 +244,8 @@ export const AdminLayout: React.FC = () => {
             <div className="relative w-72 bg-white border-r border-slate-200 flex flex-col p-5 z-10 shadow-2xl">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                    W
+                  <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/90 flex items-center justify-center p-1 shadow-xs">
+                    <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-bold text-sm text-slate-900">
                     Watered Admin

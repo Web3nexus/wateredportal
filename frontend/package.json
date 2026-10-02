@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && cp -r dist/index.html dist/assets dist/favicon.svg dist/icons.svg ../backend/public/",
+    "build": "tsc -b && vite build && cp -r dist/* ../backend/public/",
     "lint": "oxlint",
     "preview": "vite preview"
   },

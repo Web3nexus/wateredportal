@@ -57,8 +57,8 @@ export const LoginPage: React.FC = () => {
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-slate-900 via-indigo-600 to-indigo-800" />
 
         <div className="text-center mb-8 pt-2">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-800 items-center justify-center text-white font-bold text-2xl mb-4 shadow-md ring-1 ring-white/10">
-            W
+          <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-slate-200/80 items-center justify-center p-2 mb-3 shadow-sm ring-1 ring-slate-100">
+            <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Member Sign In
@@ -109,7 +109,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-100">
+        <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Not a member yet?</span>
             <Link
@@ -117,6 +117,16 @@ export const LoginPage: React.FC = () => {
               className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
             >
               Apply for membership <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Link>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-50">
+            <span>Administrator?</span>
+            <Link
+              to="/securegate"
+              className="inline-flex items-center text-slate-600 hover:text-slate-900 font-medium transition-colors"
+            >
+              Admin Secure Gate &rarr;
             </Link>
           </div>
         </div>

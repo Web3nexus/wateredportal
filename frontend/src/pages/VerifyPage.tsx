@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Lock,
   ArrowLeft,
-  Shield,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const VerifyPage: React.FC = () => {
@@ -32,7 +32,7 @@ export const VerifyPage: React.FC = () => {
     } catch {
       setResult({
         verified: false,
-        message: 'The submitted identifier does not correspond to an active MYWATER credential.',
+        message: 'The submitted identifier does not correspond to an active Watered credential.',
       });
     } finally {
       setIsLoading(false);
@@ -51,20 +51,24 @@ export const VerifyPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-white border border-[#eae7df] rounded-[4px] p-6 sm:p-8 shadow-[0_2px_4px_rgba(24,24,27,0.04),0_12px_28px_-6px_rgba(24,24,27,0.08)] text-center">
-        {/* Seal Insignia */}
-        <div className="inline-flex w-12 h-12 rounded-[2px] bg-[#faf8f4] border border-[#d8c7a6] items-center justify-center text-[#966922] font-serif font-bold text-base mb-3 shadow-2xs">
-          MW
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 sm:py-16 bg-slate-50/60 min-h-[calc(100vh-4rem)]">
+      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 text-center relative overflow-hidden">
+        {/* Top Accent Gradient Bar */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-slate-900 via-indigo-600 to-indigo-800" />
+
+        <div className="text-center mb-6 pt-2">
+          <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-slate-200/80 items-center justify-center p-2 mb-3 shadow-sm ring-1 ring-slate-100">
+            <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
+          </div>
+
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Pass Verification
+          </h1>
+
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Official Watered digital pass and credential verification
+          </p>
         </div>
-
-        <h1 className="font-serif text-xl font-semibold tracking-wider text-stone-900 uppercase">
-          CREDENTIAL VERIFICATION
-        </h1>
-
-        <p className="text-xs text-stone-500 font-sans mt-1 mb-6">
-          Sovereign Public Registry Verification Gateway
-        </p>
 
         {!secureId && (
           <form onSubmit={handleSubmit} className="mb-6 space-y-3">
@@ -74,86 +78,86 @@ export const VerifyPage: React.FC = () => {
               onChange={(e) => setInputToken(e.target.value)}
               required
             />
-            <Button type="submit" variant="primary" size="md" className="w-full" isLoading={isLoading}>
+            <Button type="submit" variant="primary" size="md" className="w-full justify-center" isLoading={isLoading}>
               <Search className="w-3.5 h-3.5 mr-2" />
-              Verify Identifier
+              Verify Pass
             </Button>
           </form>
         )}
 
         {isLoading && (
           <div className="py-8 space-y-3">
-            <div className="w-8 h-8 border-2 border-[#966922] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-mono text-stone-500 tracking-wider">
-              CONSULTING SOVEREIGN ROLL...
+            <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs font-mono text-slate-500 tracking-wider">
+              VERIFYING CREDENTIAL...
             </p>
           </div>
         )}
 
         {!isLoading && result && result.verified && result.member && (
-          <div className="mt-4 p-5 bg-[#faf8f4] border border-[#eae3d5] rounded-[3px] space-y-4 text-left shadow-2xs">
-            <div className="flex items-center space-x-2 text-emerald-800 border-b border-[#eae3d5] pb-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+          <div className="mt-4 p-5 bg-slate-50/80 border border-slate-200/90 rounded-xl space-y-4 text-left shadow-xs">
+            <div className="flex items-center space-x-2 text-emerald-800 border-b border-slate-200/80 pb-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
-                <span className="block text-xs font-serif font-semibold tracking-wide uppercase">
+                <span className="block text-xs font-bold tracking-wide text-slate-900 uppercase">
                   CREDENTIAL VALIDATED
                 </span>
-                <span className="text-[10px] text-emerald-700 font-mono">
-                  Official Roll Attestation Confirmed
+                <span className="text-[10px] text-emerald-600 font-medium">
+                  Active member in official register
                 </span>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-24 rounded-[2px] border border-[#dcd4c3] overflow-hidden bg-white shrink-0 shadow-2xs p-0.5">
+              <div className="w-20 h-24 rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0 shadow-xs p-0.5">
                 {result.member.photograph_url ? (
                   <img
                     src={result.member.photograph_url}
                     alt={result.member.full_name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
                     Portrait
                   </div>
                 )}
               </div>
 
               <div className="space-y-1 overflow-hidden">
-                <span className="text-[9px] uppercase tracking-wider text-stone-400 font-sans font-medium block">
-                  Credential Bearer
+                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium block">
+                  Member Name
                 </span>
-                <h3 className="font-serif text-base font-semibold text-stone-900 tracking-normal truncate">
+                <h3 className="text-base font-bold text-slate-900 tracking-tight truncate">
                   {result.member.full_name}
                 </h3>
 
                 <div className="pt-1">
-                  <span className="text-[9px] uppercase tracking-wider text-stone-400 font-sans font-medium block">
-                    Membership Court
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium block">
+                    Membership Tier
                   </span>
-                  <span className="inline-block text-xs font-serif font-medium tracking-wide border border-[#d8c7a6] px-2 py-0.5 rounded-[2px] mt-0.5 bg-white text-[#8a5d1b]">
+                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full mt-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700">
                     {result.member.category_name}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#eae3d5] text-xs">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/80 text-xs">
               <div>
-                <span className="text-[10px] uppercase text-stone-400 block font-sans">Member ID</span>
-                <span className="font-mono font-medium text-[#8a5d1b] text-sm tracking-wider">
+                <span className="text-[10px] uppercase text-slate-400 block font-medium">Member ID</span>
+                <span className="font-mono font-bold text-slate-900 text-sm tracking-wider">
                   {result.member.member_number}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] uppercase text-stone-400 block font-sans">Status</span>
+                <span className="text-[10px] uppercase text-slate-400 block font-medium">Status</span>
                 <Badge variant={result.member.status === 'active' ? 'success' : 'neutral'}>
                   {result.member.status.toUpperCase()}
                 </Badge>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-[#eae3d5] text-[10px] text-stone-400 flex items-center justify-between font-mono">
+            <div className="pt-2 border-t border-slate-200/80 text-[10px] text-slate-400 flex items-center justify-between font-mono">
               <span>VALIDATED AT:</span>
               <span>{new Date(result.member.verified_at).toLocaleTimeString()}</span>
             </div>
@@ -161,29 +165,29 @@ export const VerifyPage: React.FC = () => {
         )}
 
         {!isLoading && result && !result.verified && hasSearched && (
-          <div className="mt-4 p-5 bg-rose-50 border border-rose-200 rounded-[3px] space-y-2 text-left">
+          <div className="mt-4 p-5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-left">
             <div className="flex items-center space-x-2 text-rose-800">
               <ShieldAlert className="w-5 h-5 shrink-0 text-rose-600" />
-              <span className="text-xs font-semibold font-serif tracking-wider uppercase">
+              <span className="text-xs font-bold tracking-wider uppercase">
                 CREDENTIAL INVALID OR REVOKED
               </span>
             </div>
-            <p className="text-xs text-rose-700 leading-relaxed font-sans">
+            <p className="text-xs text-rose-700 leading-relaxed">
               {result.message ||
-                'This security token does not correspond to an active accredited member in the MYWATER roll.'}
+                'This security token does not correspond to an active member in the Watered registry.'}
             </p>
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-[#eae7df] text-[10px] text-stone-400 leading-relaxed text-center flex items-center justify-center space-x-1.5 font-sans">
-          <Lock className="w-3.5 h-3.5 text-[#966922] shrink-0" />
-          <span>Private contact records are cryptographically sealed and omitted from public verification.</span>
+        <div className="mt-6 pt-5 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed text-center flex items-center justify-center space-x-1.5">
+          <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span>Private member records are cryptographically protected and omitted from public display.</span>
         </div>
 
         <div className="mt-4">
-          <Link to="/" className="text-xs text-stone-500 hover:text-stone-800 inline-flex items-center font-sans">
+          <Link to="/login" className="text-xs text-slate-500 hover:text-slate-800 inline-flex items-center font-medium">
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-            Return to Portal Entrance
+            Return to Sign In
           </Link>
         </div>
       </div>

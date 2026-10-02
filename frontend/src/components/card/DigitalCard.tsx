@@ -33,8 +33,8 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ card, showActions = tr
         {/* Card Header */}
         <div className="relative z-10 flex items-center justify-between pb-3.5 border-b border-white/10">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white font-bold text-sm shadow-inner">
-              W
+            <div className="w-8 h-8 rounded-lg bg-white/95 flex items-center justify-center p-1 shadow-sm">
+              <img src="/logo.png" alt="Watered" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="font-bold text-sm tracking-wide text-white block">
