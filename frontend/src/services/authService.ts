@@ -22,5 +22,22 @@ export const authService = {
   async logout(): Promise<{ message: string }> {
     return api.post<{ message: string }>('/auth/logout');
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return api.post<{ message: string }>('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(payload: {
+    token: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }): Promise<{ message: string }> {
+    return api.post<{ message: string }>('/auth/reset-password', payload);
+  },
+
+  async validateResetPassword(token: string, email: string): Promise<{ valid: boolean }> {
+    return api.get<{ valid: boolean }>(`/auth/reset-password/validate?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
+  },
 };
 

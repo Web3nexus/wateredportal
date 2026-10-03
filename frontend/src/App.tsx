@@ -12,6 +12,8 @@ import { LoginPage } from './pages/LoginPage';
 import { SecureGatePage } from './pages/SecureGatePage';
 import { JoinPage } from './pages/JoinPage';
 import { VerifyPage } from './pages/VerifyPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 // Member Pages
 import { DashboardPage } from './pages/member/DashboardPage';
@@ -93,6 +95,8 @@ export const App: React.FC = () => {
             <Route path="/join" element={<JoinPage />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/verify/:secureId" element={<VerifyPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
 
           {/* Member Authenticated Routes with MemberLayout */}

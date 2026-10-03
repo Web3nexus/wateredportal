@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\EmailService;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -177,5 +180,85 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Signed out successfully.',
         ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+        ]);
+
+        $status = Password::broker('users')->sendResetLink(
+            $request->only('email')
+        );
+
+        $user = User::where('email', $request->input('email'))->first();
+        if ($status === Password::RESET_LINK_SENT && $user) {
+            AuditLog::record('password_reset_requested', $user, ['email' => $user->email], $user);
+        }
+
+        return response()->json([
+            'message' => 'If that email exists, a password reset link has been sent.',
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::broker('users')->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+
+                AuditLog::record('password_reset_completed', $user, ['email' => $user->email], $user);
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => ['The password reset token is invalid or has expired.'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Password has been reset successfully.',
+        ]);
+    }
+
+    public function validateResetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'string', 'email'],
+        ]);
+
+        $user = User::where('email', $request->input('email'))->first();
+        if (!$user) {
+            return response()->json(['valid' => false]);
+        }
+
+        $resetToken = Password::broker('users')->getRepository()->get($user);
+        if (!$resetToken) {
+            return response()->json(['valid' => false]);
+        }
+
+        $valid = Password::broker('users')->getRepository()->exists($user, $request->input('token'));
+        if (!$valid) {
+            return response()->json(['valid' => false]);
+        }
+
+        return response()->json(['valid' => true]);
     }
 }

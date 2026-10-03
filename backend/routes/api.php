@@ -23,6 +23,11 @@ Route::get('/verify/{secureId}', [PublicController::class, 'verify']);
 Route::get('/settings/public', [SettingsController::class, 'getPublicSettings']);
 Route::get('/track/email/{token}.png', [CommunicationsController::class, 'trackEmail']);
 
+// Password reset routes (public)
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+Route::get('/auth/reset-password/validate', [AuthController::class, 'validateResetPassword'])->middleware('throttle:10,1');
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated User Routes (auth:sanctum)
