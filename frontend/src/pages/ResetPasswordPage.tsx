@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Input } from '../components/ui/Input';
@@ -8,6 +8,7 @@ import { authService } from '../services/authService';
 export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const token = searchParams.get('token') || '';
   const email = searchParams.get('email') || '';
@@ -44,6 +45,12 @@ export const ResetPasswordPage: React.FC = () => {
     };
 
     validate();
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
   }, [token, email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,7 +66,7 @@ export const ResetPasswordPage: React.FC = () => {
         password_confirmation: passwordConfirmation,
       });
       setSuccess(true);
-      setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         navigate('/login', { state: { successMessage: 'Password reset successfully' } });
       }, 1500);
     } catch (err: any) {
@@ -95,11 +102,35 @@ export const ResetPasswordPage: React.FC = () => {
               </div>
 
               <Link
-                to="/forgot-password"
-                className="inline-flex items-center text-xs text-slate-600 hover:text-indigo-600 font-medium transition-colors"
+                to="/login"
+                className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 font-medium"
               >
-                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-                Request New Reset Link
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-md mx-auto px-6 py-12">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mb-4">
+                <CheckCircle className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h1 className="text-2xl font-semibold text-slate-900 mb-2">Password Reset</h1>
+              <p className="text-sm text-slate-600 mb-6">Your password has been reset successfully</p>
+              <Link
+                to="/login"
+                className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 font-medium"
+              >
+                Back to Login
               </Link>
             </div>
           </div>
@@ -115,72 +146,60 @@ export const ResetPasswordPage: React.FC = () => {
           <div className="p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Reset Password</h1>
-              <p className="mt-2 text-sm text-slate-500">
-                Enter your new password below.
-              </p>
+              <p className="text-sm text-slate-500 mt-1">Enter your new password</p>
             </div>
 
-            {success ? (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800 flex items-start space-x-3">
-                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            {error && (
+              <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-800 flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Password reset successfully</p>
-                  <p className="mt-1 text-emerald-700">Redirecting to login...</p>
+                  <p className="font-medium">{error}</p>
                 </div>
               </div>
-            ) : (
-              <>
-                {error && (
-                  <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start space-x-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                    <span className="font-medium leading-relaxed">{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <Input
-                    label="New Password"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                  />
-
-                  <Input
-                    label="Confirm New Password"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={passwordConfirmation}
-                    onChange={(e) => setPasswordConfirmation(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                  />
-
-                  <div className="pt-2">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      className="w-full justify-center shadow-xs bg-slate-900 hover:bg-slate-800 text-white"
-                      isLoading={isLoading}
-                    >
-                      Reset Password
-                    </Button>
-                  </div>
-                </form>
-              </>
             )}
 
-            <div className="mt-6 pt-6 border-t border-slate-100">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                label="New Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+
+              <Input
+                id="password_confirmation"
+                name="password_confirmation"
+                type="password"
+                label="Confirm Password"
+                value={passwordConfirmation}
+                onChange={(e) => setPasswordConfirmation(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full"
+                disabled={isLoading}
+                isLoading={isLoading}
+              >
+                Reset Password
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center text-xs text-slate-600 hover:text-indigo-600 font-medium transition-colors"
+                className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 font-medium"
               >
-                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Login
               </Link>
             </div>
