@@ -96,6 +96,15 @@ export const LoginPage: React.FC = () => {
             autoComplete="current-password"
           />
 
+          <div className="flex justify-end -mt-2">
+            <Link
+              to="/forgot-password"
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
           <div className="pt-2">
             <Button
               type="submit"
