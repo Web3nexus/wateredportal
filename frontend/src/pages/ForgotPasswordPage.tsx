@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
+import { Input } from '../components/common/Input';
+import { Button } from '../components/common/Button';
 import { authService } from '../services/authService';
 
 export const ForgotPasswordPage: React.FC = () => {
